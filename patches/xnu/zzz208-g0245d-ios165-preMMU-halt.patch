@@ -1,0 +1,19 @@
+--- a/osfmk/arm64/start.s
++++ b/osfmk/arm64/start.s
+@@ -802,7 +802,16 @@
+ 	// Enable caches, MMU, ROP and JOP
+ 	// g0245d v207: mark 4 (blue) - last mark before MMU enable.
+ 	FB_MARK207 x20, 1380, 0x00, 0x00, 0xFF
+ 
++	// g0245d v208 halt test: freeze with the MMU still off.
++	// A white band at row 1400 plus a screen that stays frozen proves the
++	// build ran and that the panel does not blank on its own. If v208 goes
++	// black anyway, the panel is the problem; if it stays, v207's black
++	// screen came from post-MMU kernel code.
++	FB_MARK207 x20, 1400, 0xFF, 0xFF, 0xFF
++Lv208_halt:
++	b	Lv208_halt
++
+ 	MOV64   x0, SCTLR_EL1_DEFAULT
+ 	MSR_SCTLR_EL1_X0
+ 	isb		sy

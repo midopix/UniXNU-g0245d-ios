@@ -1,0 +1,59 @@
+diff --git a/osfmk/arm64/start.s b/osfmk/arm64/start.s
+--- a/osfmk/arm64/start.s
++++ b/osfmk/arm64/start.s
+@@ -654,5 +654,30 @@
+ 	create_bootstrap_mapping x14, x15, x5, x3, x2, x9, x10, x11, x12, x13
+ 
++	// g0245d v209: identity-map 8 MiB at the framebuffer in the V=P table so
++	// that post-MMU code can paint debug marks by physical address. The fb
++	// occupies L2 slots 26-29 of the same 1 GiB slot the kernel starts in
++	// (index 169 and up), which the bootstrap mapping never touches, so this
++	// adds entries without replacing the kernel's own mapping.
++	mov		x6, #0x83400000
++	and		x7, x6, #(ARM_TT_L1_INDEX_MASK)
++	lsr		x7, x7, #(ARM_TT_L1_SHIFT)
++	lsl		x7, x7, #(TTE_SHIFT)
++	add		x7, x25, x7				// L1 entry for the 1 GiB slot
++	ldr		x8, [x7]				// L2 table descriptor
++	and		x8, x8, #(ARM_TTE_TABLE_MASK)		// L2 table PA
++	and		x9, x6, #(ARM_TT_L2_INDEX_MASK)
++	lsr		x9, x9, #(ARM_TTE_BLOCK_L2_SHIFT)
++	lsl		x9, x9, #(TTE_SHIFT)
++	add		x8, x8, x9				// first L2 entry pointer
++	mov		x9, #(ARM_TTE_BOOT_BLOCK)
++	and		x10, x6, #(ARM_TTE_BLOCK_L2_MASK)
++	orr		x9, x9, x10				// block descriptor
++	mov		x10, #4					// four 2 MiB blocks
++1:	str		x9, [x8], #(1 << TTE_SHIFT)
++	add		x9, x9, #(ARM_TT_L2_SIZE)
++	subs	x10, x10, #1
++	b.ne	1b
++
+ 	b Lbootstrap_tables_ready
+ Lbootstrap_tables_exhausted:
+ 	// MMU is still off. Stop with the offending cursor/end preserved for
+@@ -802,11 +825,14 @@
+ 	// Enable caches, MMU, ROP and JOP
+ 	// g0245d v207: mark 4 (blue) - last mark before MMU enable.
+ 	FB_MARK207 x20, 1380, 0x00, 0x00, 0xFF
+ 
+ 	MOV64   x0, SCTLR_EL1_DEFAULT
+ 	MSR_SCTLR_EL1_X0
+ 	isb		sy
+ 
++	// g0245d v209: mark 5 (white) - MMU and caches are on, V=P map live.
++	FB_MARK207 x20, 1400, 0xFF, 0xFF, 0xFF
++
+ 	MOV64   x1, SCTLR_EL1_DEFAULT
+ 	cmp		x0, x1
+ 	bne		.
+@@ -877,6 +904,9 @@
+ #endif
+ 
+ 	// Return to arm_init()
++	// g0245d v209: mark 6 (green) - about to return into arm_init.
++	FB_MARK207 x20, 1420, 0x00, 0xFF, 0x00
++
+ 	ret
+ 
+ Ltrampoline:
