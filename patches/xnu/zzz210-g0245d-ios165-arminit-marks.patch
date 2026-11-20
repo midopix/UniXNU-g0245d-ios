@@ -1,0 +1,102 @@
+--- a/osfmk/arm/arm_init.c
++++ b/osfmk/arm/arm_init.c
+@@ -334,6 +334,68 @@
+  *		Function:		Runs on the boot CPU, once, on entry from iBoot.
+  */
+ 
++/*
++ * g0245d v210: post-return C-side boot marks.
++ *
++ * v209 stops at the last band painted just before start.s returns. The bands
++ * below are painted from inside arm_init, so one can only appear if control
++ * really landed in C instead of dying somewhere after that `ret`.
++ *
++ * Every mark here sits before arm_vm_init(). Until it runs, TTBR0 still holds
++ * the bootstrap V=P table whose 0x83400000 window v209 added, so a store by
++ * physical address stays valid. arm_vm_init installs the kernel pmap, after
++ * which the same store is undefined -- hence nothing is painted past it.
++ *
++ * ARM_TTE_BOOT_BLOCK maps that window write-back cacheable, so the band has to
++ * be cleaned to the point of coherency; the panel reads DRAM, and a dirty line
++ * would leave the band invisible.
++ *
++ * Byte order is (G, R, B) and the panel shows raw row R at 1919 - R, exactly
++ * like FB_MARK207 in start.s.
++ */
++#define G0245D_FB_BAND_ROWS     8
++#define G0245D_FB_BAND_WIDTH    1080
++
++static void __attribute__((noinline))
++g0245d_fb_band(
++	boot_args       *args,
++	unsigned int    row,
++	unsigned char   g,
++	unsigned char   r,
++	unsigned char   b)
++{
++	uintptr_t       fb = (uintptr_t)args->Video.v_baseAddr;
++	unsigned long   rowbytes = args->Video.v_rowBytes;
++	uintptr_t       start;
++	uintptr_t       end;
++	uintptr_t       p;
++	unsigned int    y;
++	unsigned int    x;
++
++	if (fb == 0 || rowbytes == 0) {
++		return;
++	}
++
++	start = fb + (uintptr_t)row * (uintptr_t)rowbytes;
++	end = start + (uintptr_t)G0245D_FB_BAND_ROWS * (uintptr_t)rowbytes;
++
++	for (y = 0; y < G0245D_FB_BAND_ROWS; y++) {
++		p = start + (uintptr_t)y * (uintptr_t)rowbytes;
++		for (x = 0; x < G0245D_FB_BAND_WIDTH; x++) {
++			*(volatile unsigned char *)(p + 0) = g;
++			*(volatile unsigned char *)(p + 1) = r;
++			*(volatile unsigned char *)(p + 2) = b;
++			p += 3;
++		}
++	}
++
++	__asm__ volatile ("dsb sy" ::: "memory");
++	for (p = start; p < end; p += 64) {
++		__asm__ volatile ("dc civac, %0" :: "r"(p) : "memory");
++	}
++	__asm__ volatile ("dsb sy" ::: "memory");
++}
++
+ __startup_func
+ void
+ arm_init(
+@@ -348,6 +410,9 @@
+ 
+ 	arm_setup_pre_sign();
+ 
++	/* g0245d v210: mark 7 (rose) - arm_init body reached from start.s. */
++	g0245d_fb_band(args, 1440, 0x00, 0xFF, 0x80);
++
+ 	arm_slide_rebase_and_sign_image();
+ 
+ 	/* If kernel integrity is supported, use a constant copy of the boot args. */
+@@ -362,6 +427,10 @@
+ #endif /* defined(HAS_APPLE_PAC) */
+ 
+ 	PE_init_platform(FALSE, args); /* Get platform expert set up */
++
++	/* g0245d v210: mark 8 (violet) - platform expert came up. */
++	g0245d_fb_band(args, 1460, 0x80, 0x00, 0xFF);
++
+ 	boot_progress_init();
+ 
+ #if __arm64__
+@@ -524,6 +593,9 @@
+ 	__builtin_arm_wsr("pan", 1);
+ #endif  /* __ARM_PAN_AVAILABLE__ */
+ 
++	/* g0245d v210: mark 9 (orange) - early init done, arm_vm_init next. */
++	g0245d_fb_band(args, 1480, 0xFF, 0x80, 0x00);
++
+ 	boot_progress_stage("arm_vm_init enter");
+ 	arm_vm_init(xmaxmem, args);
+ 	boot_progress_stage("arm_vm_init returned");
