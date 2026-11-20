@@ -1,0 +1,67 @@
+--- a/osfmk/arm/arm_init.c
++++ b/osfmk/arm/arm_init.c
+@@ -433,6 +433,9 @@
+ 
+ 	boot_progress_init();
+ 
++	/* g0245d v211: mark 1500 - boot_progress_init returned. */
++	g0245d_fb_band(args, 1500, 0x80, 0xFF, 0x00);
++
+ #if __arm64__
+ 	configure_timer_apple_regs();
+ 	wfe_timeout_configure();
+@@ -441,6 +444,9 @@
+ 	configure_misc_apple_boot_args();
+ 	configure_misc_apple_regs();
+ 
++	/* g0245d v211: mark 1520 - apple timer/wfe/misc setup returned. */
++	g0245d_fb_band(args, 1520, 0x00, 0x80, 0xFF);
++
+ #if (DEVELOPMENT || DEBUG)
+ 	unsigned long const *platform_stall_ptr = NULL;
+ 
+@@ -520,11 +526,17 @@
+ 	    + ((uintptr_t)&BootCpuData
+ 	    - (uintptr_t)(args->virtBase)));
+ 
++
++	/* g0245d v211: mark 1540 - cpu topology ready, thread_bootstrap next. */
++	g0245d_fb_band(args, 1540, 0xC0, 0xFF, 0x00);
+ 	thread = thread_bootstrap();
+ 	thread->machine.CpuDatap = &BootCpuData;
+ 	thread->machine.pcpu_data_base = (vm_offset_t)0;
+ 	machine_set_current_thread(thread);
+ 
++	/* g0245d v211: mark 1560 - thread_bootstrap returned. */
++	g0245d_fb_band(args, 1560, 0xC0, 0x00, 0xFF);
++
+ 	/*
+ 	 * Preemption is enabled for this thread so that it can lock mutexes without
+ 	 * tripping the preemption check. In reality scheduling is not enabled until
+@@ -534,6 +546,9 @@
+ 	thread->machine.preemption_count = 0;
+ 	cpu_bootstrap();
+ 
++	/* g0245d v211: mark 1580 - cpu_bootstrap returned. */
++	g0245d_fb_band(args, 1580, 0xFF, 0x00, 0x80);
++
+ 	rtclock_early_init();
+ 
+ 	kernel_debug_string_early("kernel_startup_bootstrap");
+@@ -544,10 +559,16 @@
+ 	 */
+ 	timer_call_init();
+ 
++	/* g0245d v211: mark 1600 - timer_call_init returned. */
++	g0245d_fb_band(args, 1600, 0x80, 0x00, 0x80);
++
+ 	cpu_init();
+ 
+ 	processor_bootstrap();
+ 
++	/* g0245d v211: mark 1640 - processor_bootstrap returned. */
++	g0245d_fb_band(args, 1640, 0x80, 0x80, 0xFF);
++
+ 	if (PE_parse_boot_argn("maxmem", &maxmem, sizeof(maxmem))) {
+ 		xmaxmem = (uint64_t) maxmem * (1024 * 1024);
+ 	} else if (PE_get_default("hw.memsize", &memsize, sizeof(memsize))) {
