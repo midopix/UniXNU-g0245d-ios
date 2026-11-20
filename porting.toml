@@ -311,10 +311,16 @@ inputs = [
 ]
 configuration = ["kernel_args carries console=ttyHSL0,115200,n8 for the serial stage."]
 procedure = ["Add the firmware log exporter; capture QR logs; then persistent capture after storage works."]
-findings = ["Collect the first serial log from the device."]
+findings = [
+  "Serial capture remains pending. The iOS 16.5 (20F66) v211 image (md5 81cf3d3dc51e5511032e40be51b28938, device source 5b78cd7f4ec839eabc61850a59eb2ef0b12fcca8) was flashed before IMG_20261120_151717.jpg; calibrated framebuffer-band inspection finds raw 1500 orange present and raw 1520 purple absent. Since raw 1500 is after boot_progress_init(), the unresolved interval is the following five timer/WFE/misc calls, before arm_vm_init().",
+  "The applied XNU osfmk/arm/machine_routines_apple.c defines configure_timer_apple_regs(), configure_misc_apple_boot_args() and configure_misc_apple_regs() as empty functions. An Apple-specific register trap is not established; wfe_timeout_configure() and wfe_timeout_init() in osfmk/arm64/machine_routines.c remain active candidates.",
+  "The v212 diagnostic-only patch is applied and its kernel finished compiling on 2026-11-20 (kernel.macho sha256 870dd404469d7a643d6d686edd78dffaf42a227f1817e8ec58cb650962c404ee); the payload was rebuilt (24 MiB) and verified to contain that kernel. No boot image was packed: linux/ios-pipeline.py aborted at its staged-kernel readback (FileNotFoundError on payload/stage/EFI/UniXNU/Payloads/kernel.macho), so v212 has not been flashed. Its sequential checkpoints are 1660 before configure_timer_apple_regs(), 1680 after it, 1700 after wfe_timeout_configure(), 1720 after wfe_timeout_init(), 1740 after configure_misc_apple_boot_args(), and 1760 after configure_misc_apple_regs(). These execute between existing raw 1500 and raw 1520; raw 1480 remains the later arm_vm_init() entry boundary. No v212 boot or fault location is verified yet.",
+]
 completion = ["Each claimed milestone has a reproducible command, a matching source/image revision and an accessible result."]
 limits = ["Device availability not established; serial line wiring from the service manual."]
 next_action = ["Confirm the debug UART wiring and cable from the service manual; use the stock vmlinux + board.dts for offline driver reference."]
 evidence = [
-  "board.dts serial@075b0000 (status ok) and serial@07570000 (disabled).",
+  { kind = "source", reference = "dts/g0245d.dts", result = "The stock DTS reference records serial@075b0000 enabled and serial@07570000 disabled; a captured XNU serial log is still pending." },
+  { kind = "source", reference = "patches/xnu/zzz211-g0245d-ios165-midinit-marks.patch", result = "The raw 1500 marker follows boot_progress_init(); raw 1520 follows configure_timer_apple_regs(), wfe_timeout_configure(), wfe_timeout_init(), configure_misc_apple_boot_args() and configure_misc_apple_regs(). Local v211 photo IMG_20261120_151717.jpg contains the former marker and lacks the latter at its calibrated position; the photo is not published in this repository." },
+  { kind = "source", reference = "patches/xnu/zzz212-g0245d-ios165-timer-wfe-marks.patch", result = "Adds six checkpoints using the existing framebuffer helper without changing initialization calls. The applied arm_init.c in the build tree reverse-applies this patch cleanly, and the compiled kernel carries the six new band store sites. No image or device success is asserted." },
 ]
