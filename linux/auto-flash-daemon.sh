@@ -17,7 +17,7 @@ set -uo pipefail
 D=$HOME/WorkBuddy/G0245D
 export PATH="$D/workspace/tools/platform-tools-linux:$HOME/.workbuddy/binaries/gitlocal/bin:$PATH"
 
-SERIAL=S002170002517
+SERIAL=${G0245D_SERIAL:-$(fastboot devices 2>/dev/null | awk 'NR==1{print $1}')}
 IMG_DIR="$D/workspace/tmp"
 IMG_GLOB="g0245d-ios165-v*.img"
 # 可由 --img 覆盖（固定镜像模式）

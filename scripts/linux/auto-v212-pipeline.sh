@@ -5,9 +5,9 @@
 #   bash scripts/linux/auto-v212-pipeline.sh photo <照片> [TAG]
 #   bash scripts/linux/auto-v212-pipeline.sh watch <目录>
 set -euo pipefail
+
 # 路径全部走环境变量/推导，仓库里不留本机绝对路径
 WORKSPACE=${WORKSPACE:-$(cd "$(dirname "$0")/../.." && pwd)}
-
 BASE=${G0245D_BASE:-$HOME/g0245d-clean}
 UX=$BASE/UniXNU-runtime
 DEV=$BASE/ios-device
@@ -15,7 +15,7 @@ MU=$BASE/Mu-Silicium
 ANALYZER=$WORKSPACE/scripts/linux/read_ladder.py
 MANIFEST=$WORKSPACE/scripts/linux/band-manifests/v215.json
 PATCHDIR=$WORKSPACE/patches/xnu
-VENV=$HOME/g0245d-clean/venv
+VENV=$BASE/venv
 OUTROOT=${G0245D_OUT:-$HOME/g0245d-auto}/auto
 XNUSRC=$UX/out/g0245d/ios-16.5-20F66/g0245d/tree/.cache/xnu-work
 
