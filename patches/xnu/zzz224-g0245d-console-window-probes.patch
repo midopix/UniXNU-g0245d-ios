@@ -1,0 +1,366 @@
+diff --git a/osfmk/arm/arm_init.c b/osfmk/arm/arm_init.c
+index 1f0543c..2847999 100644
+--- a/osfmk/arm/arm_init.c
++++ b/osfmk/arm/arm_init.c
+@@ -1,3 +1,4 @@
++#include <kern/boot_progress.h>
+ /*
+  * Copyright (c) 2007-2021 Apple Inc. All rights reserved.
+  *
+@@ -74,6 +75,10 @@
+ 
+ #include <pexpert/pexpert.h>
+ 
++#ifndef G0245D_SKIP_WFE_TIMEOUT
++#define G0245D_SKIP_WFE_TIMEOUT 1
++#endif
++
+ #include <console/serial_protos.h>
+ 
+ #if CONFIG_TELEMETRY
+@@ -333,6 +338,155 @@ arm_setup_pre_sign(void)
+  *		Function:		Runs on the boot CPU, once, on entry from iBoot.
+  */
+ 
++/*
++ * g0245d v210: post-return C-side boot marks.
++ *
++ * v209 stops at the last band painted just before start.s returns. The bands
++ * below are painted from inside arm_init, so one can only appear if control
++ * really landed in C instead of dying somewhere after that `ret`.
++ *
++ * Every mark here sits before arm_vm_init(). Until it runs, TTBR0 still holds
++ * the bootstrap V=P table whose 0x83400000 window v209 added, so a store by
++ * physical address stays valid. arm_vm_init installs the kernel pmap, after
++ * which the same store is undefined -- hence nothing is painted past it.
++ *
++ * ARM_TTE_BOOT_BLOCK maps that window write-back cacheable, so the band has to
++ * be cleaned to the point of coherency; the panel reads DRAM, and a dirty line
++ * would leave the band invisible.
++ *
++ * Byte order is (G, R, B) and the panel shows raw row R at 1919 - R, exactly
++ * like FB_MARK207 in start.s.
++ */
++#define G0245D_FB_BAND_ROWS     8
++#define G0245D_FB_BAND_WIDTH    1080
++
++extern boolean_t g0245d_kva_live;
++extern vm_offset_t g0245d_fb_kva(vm_offset_t pa);
++
++static void __attribute__((noinline))
++g0245d_fb_band(
++	boot_args       *args,
++	unsigned int    row,
++	unsigned char   g,
++	unsigned char   r,
++	unsigned char   b)
++{
++	uintptr_t       fb = (uintptr_t)args->Video.v_baseAddr;
++	unsigned long   rowbytes = args->Video.v_rowBytes;
++	uintptr_t       start;
++	uintptr_t       end;
++	uintptr_t       p;
++	unsigned int    y;
++	unsigned int    x;
++
++	if (fb == 0 || rowbytes == 0) {
++		return;
++	}
++
++	/* g0245d v221: past the TTBR switch the raw physical value is no longer a
++	 * valid VA; translate it through the physmap instead of faulting. */
++	if (g0245d_kva_live) {
++		fb = (uintptr_t)g0245d_fb_kva((vm_offset_t)fb);
++		if (fb == 0) {
++			return;
++		}
++	}
++
++	start = fb + (uintptr_t)row * (uintptr_t)rowbytes;
++	end = start + (uintptr_t)G0245D_FB_BAND_ROWS * (uintptr_t)rowbytes;
++
++	for (y = 0; y < G0245D_FB_BAND_ROWS; y++) {
++		p = start + (uintptr_t)y * (uintptr_t)rowbytes;
++		for (x = 0; x < G0245D_FB_BAND_WIDTH; x++) {
++			*(volatile unsigned char *)(p + 0) = g;
++			*(volatile unsigned char *)(p + 1) = r;
++			*(volatile unsigned char *)(p + 2) = b;
++			p += 3;
++		}
++	}
++
++	__asm__ volatile ("dsb sy" ::: "memory");
++	for (p = start; p < end; p += 64) {
++		__asm__ volatile ("dc civac, %0" :: "r"(p) : "memory");
++	}
++	__asm__ volatile ("dsb sy" ::: "memory");
++}
++
++/*
++ * g0245d v215: wipe the whole framebuffer before painting this boot's marks.
++ *
++ * The DarwinBoot menu, the Apple logo, the version banner and the boot
++ * progress bar all occupy the same rows as our checkpoints, and once the
++ * camera has smeared them they are indistinguishable from a dim band. Clear
++ * first, and every colour left on the panel then comes from a
++ * g0245d_fb_band() call made by this boot -- the photo becomes a plain
++ * ordered ladder of lines on black.
++ *
++ * start.s only identity-maps the first 8 MiB above the framebuffer in the
++ * bootstrap V=P table (four 2 MiB blocks at 0x83400000), so the wipe is
++ * clamped to that window instead of trusting v_height.
++ */
++#define G0245D_FB_WINDOW_BYTES	(8ULL * 1024ULL * 1024ULL)
++#define G0245D_FB_WIPE_MAX_ROWS	1920ULL	/* panel is exactly 1920 lines */
++
++static void __attribute__((noinline))
++g0245d_fb_wipe(
++	boot_args       *args)
++{
++	uintptr_t       fb = (uintptr_t)args->Video.v_baseAddr;
++	unsigned long   rowbytes = args->Video.v_rowBytes;
++	unsigned long   rows;
++	unsigned long   y;
++	uintptr_t       p;
++	uintptr_t       e;
++
++	if (fb == 0 || rowbytes == 0) {
++		return;
++	}
++	if ((uint64_t)rowbytes > G0245D_FB_WINDOW_BYTES) {
++		return;
++	}
++
++	rows = (unsigned long)(G0245D_FB_WINDOW_BYTES / (uint64_t)rowbytes);
++	if (rows > G0245D_FB_WIPE_MAX_ROWS) {
++		rows = (unsigned long)G0245D_FB_WIPE_MAX_ROWS;
++	}
++
++	for (y = 0; y < rows; y++) {
++		p = fb + (uintptr_t)y * (uintptr_t)rowbytes;
++		e = p + (uintptr_t)rowbytes;
++		if (((p | (uintptr_t)rowbytes) & 7) == 0) {
++			for (; p < e; p += 8) {
++				*(volatile uint64_t *)p = 0;
++			}
++		} else {
++			for (; p < e; p++) {
++				*(volatile unsigned char *)p = 0;
++			}
++		}
++	}
++
++	__asm__ volatile ("dsb sy" ::: "memory");
++	p = fb;
++	e = fb + (uintptr_t)rows * (uintptr_t)rowbytes;
++	for (; p < e; p += 64) {
++		__asm__ volatile ("dc civac, %0" :: "r"(p) : "memory");
++	}
++	__asm__ volatile ("dsb sy" ::: "memory");
++}
++
++/* g0245d v213: used only during the boot CPU's pre-arm_vm_init WFE setup.
++ * The value operand pins the preceding computation before its checkpoint.
++ */
++void g0245d_wfe_mark(unsigned int row, unsigned char g, unsigned char r, unsigned char b, uint64_t value);
++
++void __attribute__((noinline))
++g0245d_wfe_mark(unsigned int row, unsigned char g, unsigned char r, unsigned char b, uint64_t value)
++{
++	__asm__ volatile ("" :: "r"(value) : "memory");
++	g0245d_fb_band(BootArgs, row, g, r, b);
++}
++
+ __startup_func
+ void
+ arm_init(
+@@ -347,6 +501,13 @@ arm_init(
+ 
+ 	arm_setup_pre_sign();
+ 
++	/* g0245d v215: clear the panel so no stale menu/logo/bar can be
++	 * mistaken for a checkpoint of this boot. */
++	g0245d_fb_wipe(args);
++
++	/* g0245d v210: mark 7 (rose) - arm_init body reached from start.s. */
++	g0245d_fb_band(args, 1440, 0x00, 0xFF, 0x80);
++
+ 	arm_slide_rebase_and_sign_image();
+ 
+ 	/* If kernel integrity is supported, use a constant copy of the boot args. */
+@@ -362,13 +523,46 @@ arm_init(
+ 
+ 	PE_init_platform(FALSE, args); /* Get platform expert set up */
+ 
++	/* g0245d v210: mark 8 (violet) - platform expert came up. */
++	g0245d_fb_band(args, 1460, 0x80, 0x00, 0xFF);
++
++	boot_progress_init();
++
++	/* g0245d v211: mark 1500 - boot_progress_init returned. */
++	g0245d_fb_band(args, 1500, 0x80, 0xFF, 0x00);
++
+ #if __arm64__
++	/* g0245d v212: mark 1660 - entering timer/wfe/misc diagnostics. */
++	g0245d_fb_band(args, 1660, 0xFF, 0xFF, 0xFF);
+ 	configure_timer_apple_regs();
++	/* g0245d v212: mark 1680 - configure_timer_apple_regs returned. */
++	g0245d_fb_band(args, 1680, 0x00, 0xFF, 0x00);
++#if G0245D_SKIP_WFE_TIMEOUT
++	/* g0245d v217: the WFE event-stream setup is the last thing before the
++	 * boot stops. It is only needed to bound idle WFE sleeps, so bring-up
++	 * boots without it: if the boot now passes 1700/1720 the event stream
++	 * (CNTKCTL_EL1) is the blocker. */
++#else
+ 	wfe_timeout_configure();
++#endif
++	/* g0245d v212: mark 1700 - wfe_timeout_configure returned. */
++	g0245d_fb_band(args, 1700, 0xFF, 0x00, 0xFF);
++#if G0245D_SKIP_WFE_TIMEOUT
++#else
+ 	wfe_timeout_init();
++#endif
++	/* g0245d v212: mark 1720 - wfe_timeout_init returned. */
++	g0245d_fb_band(args, 1720, 0xFF, 0xFF, 0x00);
+ 
+ 	configure_misc_apple_boot_args();
++	/* g0245d v212: mark 1740 - configure_misc_apple_boot_args returned. */
++	g0245d_fb_band(args, 1740, 0x00, 0xFF, 0xFF);
+ 	configure_misc_apple_regs();
++	/* g0245d v212: mark 1760 - configure_misc_apple_regs returned. */
++	g0245d_fb_band(args, 1760, 0xFF, 0x00, 0x00);
++
++	/* g0245d v211: mark 1520 - apple timer/wfe/misc setup returned. */
++	g0245d_fb_band(args, 1520, 0x00, 0x80, 0xFF);
+ 
+ #if (DEVELOPMENT || DEBUG)
+ 	unsigned long const *platform_stall_ptr = NULL;
+@@ -391,6 +585,10 @@ arm_init(
+ 
+ 
+ 	{
++		/* Native non-Apple 4K builds expose the hardware page size at any RAM size. */
++#if !defined(APPLE_ARM64_ARCH_FAMILY) && !__ARM_16K_PG__
++		PAGE_SHIFT_CONST = ARM_PGSHIFT;
++#else
+ 		/*
+ 		 * Select the advertised kernel page size.
+ 		 */
+@@ -409,8 +607,14 @@ arm_init(
+ 			PAGE_SHIFT_CONST = ARM_PGSHIFT;
+ 		}
+ 
++#endif
++
++#if !defined(APPLE_ARM64_ARCH_FAMILY) && !__ARM_16K_PG__
++		page_shift_user32 = ARM_PGSHIFT;
++#else
+ 		/* 32-bit apps always see 16KB page size */
+ 		page_shift_user32 = PAGE_MAX_SHIFT;
++#endif
+ #ifdef  APPLETYPHOON
+ 		if (PE_parse_boot_argn("cpus_defeatures", &cpus_defeatures, sizeof(cpus_defeatures))) {
+ 			if ((cpus_defeatures & 0xF) != 0) {
+@@ -439,11 +643,17 @@ arm_init(
+ 	    + ((uintptr_t)&BootCpuData
+ 	    - (uintptr_t)(args->virtBase)));
+ 
++
++	/* g0245d v211: mark 1540 - cpu topology ready, thread_bootstrap next. */
++	g0245d_fb_band(args, 1540, 0xC0, 0xFF, 0x00);
+ 	thread = thread_bootstrap();
+ 	thread->machine.CpuDatap = &BootCpuData;
+ 	thread->machine.pcpu_data_base = (vm_offset_t)0;
+ 	machine_set_current_thread(thread);
+ 
++	/* g0245d v211: mark 1560 - thread_bootstrap returned. */
++	g0245d_fb_band(args, 1560, 0xC0, 0x00, 0xFF);
++
+ 	/*
+ 	 * Preemption is enabled for this thread so that it can lock mutexes without
+ 	 * tripping the preemption check. In reality scheduling is not enabled until
+@@ -453,20 +663,35 @@ arm_init(
+ 	thread->machine.preemption_count = 0;
+ 	cpu_bootstrap();
+ 
++	/* g0245d v211: mark 1580 - cpu_bootstrap returned. */
++	g0245d_fb_band(args, 1580, 0xFF, 0x00, 0x80);
++
++	/* g0245d v218: bisect the 1580 -> 1600 window. Rows 1000-1060 land in the
++	 * empty middle of the panel so they never collide with the 1440-1760 stack. */
++	g0245d_fb_band(args, 1000, 0xC0, 0xFF, 0x80);	/* peach: before rtclock_early_init */
+ 	rtclock_early_init();
++	g0245d_fb_band(args, 1020, 0xC0, 0x00, 0xC0);	/* bright-teal: rtclock_early_init returned */
+ 
+ 	kernel_debug_string_early("kernel_startup_bootstrap");
+ 	kernel_startup_bootstrap();
++	g0245d_fb_band(args, 1040, 0x80, 0xC0, 0xFF);	/* lavender: kernel_startup_bootstrap returned */
+ 
+ 	/*
+ 	 * Initialize the timer callout world
+ 	 */
++	g0245d_fb_band(args, 1060, 0x80, 0x80, 0x00);	/* olive: before timer_call_init */
+ 	timer_call_init();
+ 
++	/* g0245d v211: mark 1600 - timer_call_init returned. */
++	g0245d_fb_band(args, 1600, 0x80, 0x00, 0x80);
++
+ 	cpu_init();
+ 
+ 	processor_bootstrap();
+ 
++	/* g0245d v211: mark 1640 - processor_bootstrap returned. */
++	g0245d_fb_band(args, 1640, 0x80, 0x80, 0xFF);
++
+ 	if (PE_parse_boot_argn("maxmem", &maxmem, sizeof(maxmem))) {
+ 		xmaxmem = (uint64_t) maxmem * (1024 * 1024);
+ 	} else if (PE_get_default("hw.memsize", &memsize, sizeof(memsize))) {
+@@ -512,7 +737,14 @@ arm_init(
+ 	__builtin_arm_wsr("pan", 1);
+ #endif  /* __ARM_PAN_AVAILABLE__ */
+ 
++	/* g0245d v210: mark 9 (orange) - early init done, arm_vm_init next. */
++	g0245d_fb_band(args, 1480, 0xFF, 0x80, 0x00);
++
++	boot_progress_stage("arm_vm_init enter");
+ 	arm_vm_init(xmaxmem, args);
++	boot_progress_stage("arm_vm_init returned");
++	/* g0245d v220: mark 1400 - arm_vm_init returned. */
++	g0245d_fb_band(args, 1400, 0xE0, 0xE0, 0xFF);
+ 
+ 	if (debug_boot_arg) {
+ 		patch_low_glo();
+@@ -526,8 +758,12 @@ arm_init(
+ 
+ 	/* Setup debugging output. */
+ 	const unsigned int serial_exists = serial_init();
++	/* g0245d v220: mark 1380 - serial_init done. */
++	g0245d_fb_band(args, 1380, 0xFF, 0xE0, 0xE0);
+ 	kernel_startup_initialize_upto(STARTUP_SUB_KPRINTF);
++	g0245d_fb_band(args, 1080, 0x00, 0xFF, 0x00);	/* g0245d v224: kprintf subsystem up */
+ 	kprintf("kprintf initialized\n");
++	g0245d_fb_band(args, 1100, 0xFF, 0x00, 0x00);	/* g0245d v224: first kprintf returned */
+ 
+ 	serialmode = 0;
+ 	if (PE_parse_boot_argn("serial", &serialmode, sizeof(serialmode))) {
+@@ -561,6 +797,7 @@ arm_init(
+ 		serialmode = 0;
+ 	}
+ 
++	g0245d_fb_band(args, 1120, 0xFF, 0x00, 0xFF);	/* g0245d v224: serial boot-arg block done */
+ 	/* Start serial if requested and a serial device was enumerated in serial_init(). */
+ 	if ((serialmode & SERIALMODE_OUTPUT) && serial_exists) {
+ 		serial_console_enabled = true;
+@@ -568,9 +805,12 @@ arm_init(
+ 		disableConsoleOutput = FALSE;     /* Allow printfs to happen */
+ 	}
+ 	PE_create_console();
++	g0245d_fb_band(args, 1140, 0x00, 0x00, 0xFF);	/* g0245d v224: PE_create_console returned */
+ 
+ 	/* setup console output */
+ 	PE_init_printf(FALSE);
++	/* g0245d v220: mark 1360 - printf/console initialised. */
++	g0245d_fb_band(args, 1360, 0xE0, 0xFF, 0xE0);
+ 
+ #if __arm64__
+ #if DEBUG

@@ -1,0 +1,63 @@
+--- a/osfmk/arm/arm_init.c
++++ b/osfmk/arm/arm_init.c
+@@ -396,6 +396,18 @@
+ 	__asm__ volatile ("dsb sy" ::: "memory");
+ }
+ 
++/* g0245d v213: used only during the boot CPU's pre-arm_vm_init WFE setup.
++ * The value operand pins the preceding computation before its checkpoint.
++ */
++void g0245d_wfe_mark(unsigned int row, unsigned char g, unsigned char r, unsigned char b, uint64_t value);
++
++void __attribute__((noinline))
++g0245d_wfe_mark(unsigned int row, unsigned char g, unsigned char r, unsigned char b, uint64_t value)
++{
++	__asm__ volatile ("" :: "r"(value) : "memory");
++	g0245d_fb_band(BootArgs, row, g, r, b);
++}
++
+ __startup_func
+ void
+ arm_init(
+--- a/osfmk/arm64/machine_routines.c
++++ b/osfmk/arm64/machine_routines.c
+@@ -2271,6 +2271,9 @@
+  * CNTKCTL_EL1.EVNTDIR. This is arbitrary for our purposes, so we use the
+  * falling edge (1->0) transition to generate events.
+  */
++/* g0245d v213: framebuffer marks are valid only before arm_vm_init(). */
++extern void g0245d_wfe_mark(unsigned int row, unsigned char g, unsigned char r, unsigned char b, uint64_t value);
++
+ void
+ wfe_timeout_configure(void)
+ {
+@@ -2278,6 +2281,7 @@
+ 	uint64_t        ticks_per_sec, ticks_per_event, events_per_sec = 0;
+ 	uint32_t        bit_index;
+ 
++	g0245d_wfe_mark(1780, 0xFF, 0xFF, 0xFF, 0);
+ 	if (PE_parse_boot_argn("wfe_events_sec", &events_per_sec, sizeof(events_per_sec))) {
+ 		if (events_per_sec <= 0) {
+ 			events_per_sec = 1;
+@@ -2287,8 +2291,11 @@
+ 	} else {
+ 		events_per_sec = USEC_PER_SEC;
+ 	}
++	g0245d_wfe_mark(1800, 0x00, 0xFF, 0x00, events_per_sec);
+ 	ticks_per_sec = gPEClockFrequencyInfo.timebase_frequency_hz;
++	g0245d_wfe_mark(1820, 0xFF, 0x00, 0xFF, ticks_per_sec);
+ 	ticks_per_event = ticks_per_sec / events_per_sec;
++	g0245d_wfe_mark(1840, 0xFF, 0xFF, 0x00, ticks_per_event);
+ 
+ 	/* Bit index of next power of two greater than ticks_per_event */
+ 	bit_index = flsll(ticks_per_event) - 1;
+@@ -2317,7 +2324,9 @@
+ 		bit_index--;
+ 	}
+ 
++	g0245d_wfe_mark(1860, 0x00, 0xFF, 0xFF, bit_index);
+ 	arm64_eventi = bit_index;
++	g0245d_wfe_mark(1880, 0xFF, 0x00, 0x00, arm64_eventi);
+ }
+ 
+ boolean_t

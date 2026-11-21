@@ -1,0 +1,37 @@
+{
+  "version": "v219",
+  "version_markers": [920],
+  "notes": [
+    "颜色取自源码 g0245d_fb_band(args, row, g, r, b)，参数顺序是 (g,r,b)；本文件 rgb 字段为屏幕实际 RGB。",
+    "屏幕位置：line = 1919 - row，row 越大越靠上。上下两簇色带的分界很明显。",
+    "v219 在 rtclock_early_init() 内部加了 900/920/940/960 四条，用于验证 timebase 频率播种是否生疑。",
+    "arm_init 内执行顺序：1440 1460 1500 1660 1680 1700 1720 1740 1760 1520 1540 1560 1580 1000 → (进 rtclock) 900 920 940 960 → 1020 1040 1060 → 1600 1640 1480。"
+  ],
+  "checkpoints": [
+    {"row": 1440, "rgb": [255, 0, 128], "note": "进入 arm_init（擦屏后第一条）", "order": 0},
+    {"row": 1460, "rgb": [0, 128, 255], "note": "PE_init_platform 返回", "order": 1},
+    {"row": 1500, "rgb": [255, 128, 0], "note": "boot_progress_init 返回", "order": 2},
+    {"row": 1660, "rgb": [255, 255, 255], "note": "进入 timer/wfe/misc 诊断段", "order": 3},
+    {"row": 1680, "rgb": [255, 0, 0], "note": "configure_timer_apple_regs 返回", "order": 4},
+    {"row": 1700, "rgb": [0, 255, 255], "note": "wfe_timeout_configure 返回", "order": 5},
+    {"row": 1720, "rgb": [255, 255, 0], "note": "wfe_timeout_init 返回", "order": 6},
+    {"row": 1740, "rgb": [255, 0, 255], "note": "configure_misc_apple_boot_args 返回", "order": 7},
+    {"row": 1760, "rgb": [0, 255, 0], "note": "configure_misc_apple_regs 返回", "order": 8},
+    {"row": 1520, "rgb": [128, 0, 255], "note": "timer/wfe/misc 整段返回", "order": 9},
+    {"row": 1540, "rgb": [255, 192, 0], "note": "cpu 拓扑就绪，准备 thread_bootstrap", "order": 10},
+    {"row": 1560, "rgb": [0, 192, 255], "note": "thread_bootstrap 返回", "order": 11},
+    {"row": 1580, "rgb": [0, 255, 128], "note": "cpu_bootstrap 返回", "order": 12},
+
+    {"row": 1000, "rgb": [255, 192, 128], "note": "进入 rtclock_early_init 之前", "order": 13},
+    {"row": 900,  "rgb": [0, 128, 128],   "note": "已进入 rtclock_early_init", "order": 14},
+    {"row": 920,  "rgb": [255, 255, 128], "note": "已从 CNTFRQ 播种 timebase 频率", "order": 15},
+    {"row": 940,  "rgb": [255, 128, 128], "note": "PE_register_timebase_callback 返回（回调跑完）", "order": 16},
+    {"row": 960,  "rgb": [128, 255, 128], "note": "rtclock_early_init 函数体结束", "order": 17},
+    {"row": 1020, "rgb": [0, 192, 192],   "note": "rtclock_early_init 返回（arm_init 处）", "order": 18},
+    {"row": 1040, "rgb": [192, 128, 255], "note": "kernel_startup_bootstrap 返回", "order": 19},
+    {"row": 1060, "rgb": [128, 128, 0],   "note": "进入 timer_call_init 之前", "order": 20},
+    {"row": 1600, "rgb": [128, 0, 128],   "note": "timer_call_init 返回", "order": 21},
+    {"row": 1640, "rgb": [128, 128, 255], "note": "processor_bootstrap 返回", "order": 22},
+    {"row": 1480, "rgb": [128, 255, 0],   "note": "早期 init 全过，arm_vm_init 前", "order": 23}
+  ]
+}

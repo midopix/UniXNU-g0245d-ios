@@ -1,0 +1,33 @@
+{
+  "version": "v217",
+  "version_markers": [1760],
+  "notes": [
+    "颜色一律取自源码 g0245d_fb_band(args, row, g, r, b) —— 注意参数顺序是 (g,r,b)，本文件的 rgb 字段已换算成屏幕实际 RGB。",
+    "v215 那份清单按理想色编号，与实际源码不符（如 1520 被写成 wfe-1 品红，实际是紫色普通打点），已废弃。",
+    "1520/1540/1560/1580/1600/1640/1480 全是 arm_init 里的普通打点，不是 wfe 探针；wfe 探针在 machine_routines.c，v217 起被整段跳过，屏上不会出现。",
+    "行的屏幕位置：line = 1919 - row，row 越大越靠上。",
+    "arm_init 内执行顺序：1440 → 1460 → 1500 → 1660 → 1680 → 1700 → 1720 → 1740 → 1760 → 1520 → 1540 → 1560 → 1580 → 1600 → 1640 → 1480。"
+  ],
+  "checkpoints": [
+    {"row": 1440, "rgb": [255, 0, 128], "note": "进入 arm_init（擦屏后第一条）", "order": 0},
+    {"row": 1460, "rgb": [0, 128, 255], "note": "PE_init_platform 返回", "order": 1},
+    {"row": 1500, "rgb": [255, 128, 0], "note": "boot_progress_init 返回", "order": 2},
+    {"row": 1660, "rgb": [255, 255, 255], "note": "进入 timer/wfe/misc 诊断段", "order": 3},
+    {"row": 1680, "rgb": [255, 0, 0], "note": "configure_timer_apple_regs 返回", "order": 4},
+    {"row": 1700, "rgb": [0, 255, 255], "note": "wfe_timeout_configure 返回", "order": 5},
+    {"row": 1720, "rgb": [255, 255, 0], "note": "wfe_timeout_init 返回", "order": 6},
+    {"row": 1740, "rgb": [255, 0, 255], "note": "configure_misc_apple_boot_args 返回", "order": 7},
+    {"row": 1760, "rgb": [0, 255, 0], "note": "configure_misc_apple_regs 返回", "order": 8},
+    {"row": 1520, "rgb": [128, 0, 255], "note": "timer/wfe/misc 整段返回（含 /chosen 检查）", "order": 9},
+    {"row": 1540, "rgb": [255, 192, 0], "note": "cpu 拓扑就绪，准备 thread_bootstrap", "order": 10},
+    {"row": 1560, "rgb": [0, 192, 255], "note": "thread_bootstrap 返回", "order": 11},
+    {"row": 1580, "rgb": [0, 255, 128], "note": "cpu_bootstrap 返回", "order": 12},
+    {"row": 1600, "rgb": [128, 0, 128], "note": "timer_call_init 返回", "order": 13},
+    {"row": 1640, "rgb": [128, 128, 255], "note": "processor_bootstrap 返回", "order": 14},
+    {"row": 1480, "rgb": [128, 255, 0], "note": "早期 init 全过，arm_vm_init 前", "order": 15},
+    {"row": 1000, "rgb": [0, 128, 128], "note": "v218：进入 rtclock_early_init 前", "order": 16},
+    {"row": 1020, "rgb": [255, 255, 128], "note": "v218：rtclock_early_init 返回", "order": 17},
+    {"row": 1040, "rgb": [255, 128, 128], "note": "v218：kernel_startup_bootstrap 返回", "order": 18},
+    {"row": 1060, "rgb": [128, 255, 128], "note": "v218：进入 timer_call_init 前", "order": 19}
+  ]
+}

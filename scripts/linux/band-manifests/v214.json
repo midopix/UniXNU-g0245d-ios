@@ -1,0 +1,32 @@
+{
+  "version": "v214",
+  "version_markers": [1520],
+  "checkpoints": [
+    {"row": 1300, "rgb": [255, 0, 255], "note": "start_first_cpu 入口，MMU 关", "order": 0},
+    {"row": 1320, "rgb": [255, 255, 0], "note": "common_start，引导页表已建", "order": 1},
+    {"row": 1340, "rgb": [0, 255, 255], "note": "TCR 编程完", "order": 2},
+    {"row": 1360, "rgb": [0, 255, 0], "note": "TTBR0/1 编程完", "order": 3},
+    {"row": 1380, "rgb": [0, 0, 255], "note": "开 MMU 前最后一笔", "order": 4},
+    {"row": 1400, "rgb": [255, 255, 255], "note": "MMU + 缓存已开", "order": 5},
+    {"row": 1420, "rgb": [255, 0, 0], "note": "start.s ret 即将执行", "order": 6},
+    {"row": 1440, "rgb": [255, 0, 128], "note": "进入 arm_init 函数体", "order": 7},
+    {"row": 1460, "rgb": [0, 128, 255], "note": "PE_init_platform 返回", "order": 8},
+    {"row": 1500, "rgb": [255, 128, 0], "note": "boot_progress_init 返回", "order": 9},
+    {"row": 1660, "rgb": [255, 255, 255], "note": "进入 timer/wfe/misc 诊断段", "order": 10},
+    {"row": 1680, "rgb": [255, 0, 0], "note": "configure_timer_apple_regs 返回", "order": 11},
+
+    {"row": 1520, "rgb": [128, 0, 255], "note": "v214-1 进入 wfe_timeout_configure", "order": 12, "call": "g0245d_wfe_mark"},
+    {"row": 1540, "rgb": [255, 192, 0], "note": "v214-2 boot-arg 解析与限幅后", "order": 13, "call": "g0245d_wfe_mark"},
+    {"row": 1560, "rgb": [0, 192, 255], "note": "v214-3 读 timebase_frequency_hz 后", "order": 14, "call": "g0245d_wfe_mark"},
+    {"row": 1580, "rgb": [0, 255, 128], "note": "v214-4 除法完成（ticks_per_event）", "order": 15, "call": "g0245d_wfe_mark"},
+    {"row": 1600, "rgb": [0, 128, 128], "note": "v214-5 flsll(ticks_per_event) 返回 bit_index", "order": 16, "call": "g0245d_wfe_mark"},
+    {"row": 1620, "rgb": [128, 128, 255], "note": "v214-6 取整并自减后的最终 bit_index", "order": 17, "call": "g0245d_wfe_mark"},
+    {"row": 1640, "rgb": [255, 255, 128], "note": "v214-7 写 arm64_eventi 完成", "order": 18, "call": "g0245d_wfe_mark"},
+
+    {"row": 1700, "rgb": [0, 255, 255], "note": "wfe_timeout_configure 返回", "order": 19},
+    {"row": 1720, "rgb": [255, 255, 0], "note": "wfe_timeout_init 返回", "order": 20},
+    {"row": 1740, "rgb": [255, 0, 255], "note": "configure_misc_apple_boot_args 返回", "order": 21},
+    {"row": 1760, "rgb": [0, 255, 0], "note": "configure_misc_apple_regs 返回", "order": 22},
+    {"row": 1480, "rgb": [128, 255, 0], "note": "早期 init 全过，arm_vm_init 前", "order": 23}
+  ]
+}

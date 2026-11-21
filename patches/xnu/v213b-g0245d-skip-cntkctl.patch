@@ -1,0 +1,12 @@
+--- a/osfmk/arm64/machine_routines.c
++++ b/osfmk/arm64/machine_routines.c
+@@ -2228,7 +2228,8 @@
+ 		cntkctl |= (CNTKCTL_EL1_PL0PCTEN | CNTKCTL_EL1_PL0VCTEN);
+ 	}
+ 
+-	__builtin_arm_wsr64("CNTKCTL_EL1", cntkctl);
++	/* v213b (g0245d bisect): CNTKCTL_EL1 write is trapped/frozen on this board. */
++	(void)cntkctl;
+ }
+ 
+ /*

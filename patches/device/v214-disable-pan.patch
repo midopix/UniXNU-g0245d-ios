@@ -1,0 +1,14 @@
+--- a/configs/g0245d_defconfig
++++ b/configs/g0245d_defconfig
+@@ -9,6 +9,15 @@ CONFIG_XNU_CRYPTO_BOOTSTRAP="prelinked"
+ # CONFIG_XNU_NATIVE_UFS is not set        (needs NativeUfs8996 component)
+ # CONFIG_XNU_NATIVE_ADRENO is not set     (needs Adreno530 component)
+ # CONFIG_XNU_NATIVE_LEGACY_DISPLAY is not set (needs GopFramebuffer + firmware FB)
++# v214: MSM8996 Kryo is ARMv8.0 and has no PAN.  arch:configs/common.config
++# enables CONFIG_XNU_NATIVE_PAN=y, which defines __ARM_PAN_AVAILABLE__ and makes
++# arm_init() execute `msr pan, 1` -> undefined-instruction freeze on this SoC.
++# G0345D v137 documented the same failure on the same chip; disable it here.
++# CONFIG_XNU_NATIVE_PAN is not set
+ # Secondary CPU bring-up: enable after the GIC 3-cell specifier check passes.
+ # CONFIG_XNU_ARMCPU_SECONDARY is not set
+ # CONFIG_XNU_BUILD_ARCHIVES is not set    (enable with the first native driver)

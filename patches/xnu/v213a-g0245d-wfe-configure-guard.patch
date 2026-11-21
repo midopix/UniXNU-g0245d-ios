@@ -1,0 +1,26 @@
+--- a/osfmk/arm64/machine_routines.c
++++ b/osfmk/arm64/machine_routines.c
+@@ -2291,10 +2291,22 @@
+ 		events_per_sec = USEC_PER_SEC;
+ 	}
+ 	ticks_per_sec = gPEClockFrequencyInfo.timebase_frequency_hz;
++	/* v213a (g0245d): a zero timebase makes flsll(0)-1 wrap and can wedge early boot. */
++	if (ticks_per_sec == 0) {
++		ticks_per_sec = 19200000ULL;
++	}
+ 	ticks_per_event = ticks_per_sec / events_per_sec;
+ 
+ 	/* Bit index of next power of two greater than ticks_per_event */
+-	bit_index = flsll(ticks_per_event) - 1;
++	bit_index = flsll(ticks_per_event);
++	if (bit_index > 0) {
++		bit_index--;
++	} else {
++		bit_index = 0;
++	}
++	if (bit_index >= 63) {
++		bit_index = 62;
++	}
+ 	/* Round up to next power of two if ticks_per_event is initially power of two */
+ 	if ((ticks_per_event & ((1 << bit_index) - 1)) != 0) {
+ 		bit_index++;

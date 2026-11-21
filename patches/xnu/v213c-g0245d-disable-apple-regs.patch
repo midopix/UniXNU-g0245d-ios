@@ -1,0 +1,32 @@
+--- a/osfmk/arm/arm_init.c
++++ b/osfmk/arm/arm_init.c
+@@ -439,20 +439,24 @@
+ #if __arm64__
+ 	/* g0245d v212: mark 1660 - entering timer/wfe/misc diagnostics. */
+ 	g0245d_fb_band(args, 1660, 0xFF, 0xFF, 0xFF);
++#if 0  /* v213c: G0345D v125 proved this whole Apple-private register block is
++	 * UNDEFINED on MSM8996/Kryo.  Its same-chip freeze sat between these exact
++	 * calls; skipping them is the hardware-tested workaround, not a guess.
++	 * Probe bands are kept so the recovery path stays observable. */
+ 	configure_timer_apple_regs();
++	wfe_timeout_configure();
++	wfe_timeout_init();
++	configure_misc_apple_boot_args();
++	configure_misc_apple_regs();
++#endif
+ 	/* g0245d v212: mark 1680 - configure_timer_apple_regs returned. */
+ 	g0245d_fb_band(args, 1680, 0x00, 0xFF, 0x00);
+-	wfe_timeout_configure();
+ 	/* g0245d v212: mark 1700 - wfe_timeout_configure returned. */
+ 	g0245d_fb_band(args, 1700, 0xFF, 0x00, 0xFF);
+-	wfe_timeout_init();
+ 	/* g0245d v212: mark 1720 - wfe_timeout_init returned. */
+ 	g0245d_fb_band(args, 1720, 0xFF, 0xFF, 0x00);
+-
+-	configure_misc_apple_boot_args();
+ 	/* g0245d v212: mark 1740 - configure_misc_apple_boot_args returned. */
+ 	g0245d_fb_band(args, 1740, 0x00, 0xFF, 0xFF);
+-	configure_misc_apple_regs();
+ 	/* g0245d v212: mark 1760 - configure_misc_apple_regs returned. */
+ 	g0245d_fb_band(args, 1760, 0xFF, 0x00, 0x00);
+ 

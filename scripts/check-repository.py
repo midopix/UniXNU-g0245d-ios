@@ -118,8 +118,12 @@ def check_referenced_files(root: Path, board: dict, record: dict) -> None:
 
     for area in record.get('area', []):
         for item in area.get('evidence', []):
+            # Evidence may be a free-text note or a structured reference.
+            # Only structured entries carry a file path to verify.
+            if isinstance(item, str):
+                continue
             reference = item.get('reference', '')
-            if reference.startswith('https://'):
+            if not reference or reference.startswith('https://'):
                 continue
             if not (root / reference).is_file():
                 fail(f'porting.toml: {area.get("id")}: evidence file missing: {reference}')

@@ -1,0 +1,30 @@
+{
+  "version": "v215",
+  "version_markers": [1520],
+  "notes": [
+    "v215 在 arm_init 入口整屏擦黑（g0245d_fb_wipe），start.s 画的 1300-1420 会被抹掉，故不收录。",
+    "屏幕上只剩本次启动画出的线，自上而下恰好是：1680,1660,1640,1620,1600,1580,1560,1540,1520,1500,1480,1460,1440。",
+    "7 个 wfe 探针已换成互相距离 >=180 的色，相机偏色也不会读混。"
+  ],
+  "checkpoints": [
+    {"row": 1440, "rgb": [255, 0, 128], "note": "进入 arm_init（擦屏后第一条）", "order": 0},
+    {"row": 1460, "rgb": [0, 128, 255], "note": "PE_init_platform 返回", "order": 1},
+    {"row": 1500, "rgb": [255, 128, 0], "note": "boot_progress_init 返回", "order": 2},
+    {"row": 1660, "rgb": [255, 255, 255], "note": "进入 timer/wfe/misc 诊断段", "order": 3},
+    {"row": 1680, "rgb": [255, 0, 0], "note": "configure_timer_apple_regs 返回", "order": 4},
+
+    {"row": 1520, "rgb": [255, 0, 255], "note": "wfe-1 进入 wfe_timeout_configure", "order": 5},
+    {"row": 1540, "rgb": [255, 255, 0], "note": "wfe-2 boot-arg 解析与限幅后", "order": 6},
+    {"row": 1560, "rgb": [0, 255, 255], "note": "wfe-3 读 timebase_frequency_hz 后", "order": 7},
+    {"row": 1580, "rgb": [0, 255, 0], "note": "wfe-4 除法完成 ticks_per_event", "order": 8},
+    {"row": 1600, "rgb": [0, 0, 255], "note": "wfe-5 flsll 返回 bit_index", "order": 9},
+    {"row": 1620, "rgb": [255, 0, 128], "note": "wfe-6 取整并自减后的最终 bit_index", "order": 10},
+    {"row": 1640, "rgb": [128, 255, 0], "note": "wfe-7 写 arm64_eventi 完成", "order": 11},
+
+    {"row": 1700, "rgb": [0, 255, 255], "note": "wfe_timeout_configure 返回", "order": 12},
+    {"row": 1720, "rgb": [255, 255, 0], "note": "wfe_timeout_init 返回", "order": 13},
+    {"row": 1740, "rgb": [255, 0, 255], "note": "configure_misc_apple_boot_args 返回", "order": 14},
+    {"row": 1760, "rgb": [0, 255, 0], "note": "configure_misc_apple_regs 返回", "order": 15},
+    {"row": 1480, "rgb": [128, 255, 0], "note": "早期 init 全过，arm_vm_init 前", "order": 16}
+  ]
+}

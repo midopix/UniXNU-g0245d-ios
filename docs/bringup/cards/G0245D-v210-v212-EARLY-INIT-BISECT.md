@@ -146,6 +146,11 @@ payload 已生成（24 MiB，已验证含该内核）。但 `linux/ios-pipeline.
 **boot 镜像还没打、也没刷**。下一轮直接走手工三步（kernel → payload → `pack_fd.py`）绕过该检查，
 打包后按 v210/v211 的同一套自校验（FD md5 = GOOD、DTB 尾表与 v206 逐字节同、QCOM 签名尾保留）再刷。
 
+打包脚本已备好：`scripts/linux/build-v212-all.sh`。在构建机 G0245D 根目录执行
+`bash scripts/linux/build-v212-all.sh` 只打包（输出镜像路径与 md5），加 `--flash` 则直接
+`fastboot flash boot` + `reboot`。脚本内置 kernel sha256 与 v212 已知版本
+(`870dd404…`) 的比对，并沿用 `pack_fd.py` 的 DTB 尾表 / QCOM 签名 / FD 回读校验。
+
 ## 八、判读方法（每轮照抄）
 
 ```bash
