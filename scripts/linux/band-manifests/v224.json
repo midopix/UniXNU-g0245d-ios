@@ -1,27 +1,8 @@
 {
   "version": "v224",
-  "version_markers": [
-    640,
-    660,
-    700,
-    720,
-    740,
-    760,
-    770,
-    780,
-    800
-  ],
-  "notes": [
-    "v224：在 1380（serial_init 返回）与 1360（PE_init_printf 返回）之间插入 1080/1100/1120/1140 四条，定位新的卡点。",
-    "颜色取自源码 g0245d_fb_band(args, row, g, r, b)，参数顺序是 (g,r,b)；本文件的 rgb 字段是屏幕实际 RGB。",
-    "屏幕位置：line = 1919 - row，row 越大越靠上。",
-    "v221 关键改动：探针在 TTBR 切换后改为经 physmap 换算（g0245d_fb_kva），不再写已失效的身份映射地址。",
-    "v221 新增 700-800 六条，用于二分 TTBR 切换本身，放在屏幕中部空区（20 行一格，带宽 8 行，不会粘连）。",
-    "v220 的 820 已被 780 取代（同义：TLB 已刷、KVA 生效）。",
-    "v222 新增 620（TCR_EL1 已补 T1SZ/TG1）与 770（切 flush 前先走 KVA，独立检验 physmap 是否可达）。",
-    "v223：不再把 TTBR0 置为 invalid 表，探针全程走身份映射（g0245d_kva_live 保持 FALSE），因此 flush 之后的色带只要出现，就证明 CPU 还活着，不再受 physmap 是否覆盖帧缓冲影响。",
-    "v223 新增 640（帧缓冲物理地址是否落在报告的内存范围内）与 660（physmap 能否换算该地址）。"
-  ],
+  "generated_by": "scripts/linux/gen_manifest.py",
+  "mapping": "panel line = 1919 - row; top of screen = largest row",
+  "color_note": "rgb here is what the panel shows: byte0=G, byte1=R, byte2=B",
   "checkpoints": [
     {
       "row": 1760,
@@ -30,8 +11,14 @@
         255,
         0
       ],
-      "note": "configure_misc_apple_regs 返回",
-      "order": 8
+      "g_r_b": [
+        255,
+        0,
+        0
+      ],
+      "note": "",
+      "source": "osfmk/arm/arm_init.c:574",
+      "order": 1
     },
     {
       "row": 1740,
@@ -40,8 +27,14 @@
         0,
         255
       ],
-      "note": "configure_misc_apple_boot_args 返回",
-      "order": 7
+      "g_r_b": [
+        0,
+        255,
+        255
+      ],
+      "note": "",
+      "source": "osfmk/arm/arm_init.c:571",
+      "order": 2
     },
     {
       "row": 1720,
@@ -50,8 +43,14 @@
         255,
         0
       ],
-      "note": "wfe_timeout_init 返回",
-      "order": 6
+      "g_r_b": [
+        255,
+        255,
+        0
+      ],
+      "note": "",
+      "source": "osfmk/arm/arm_init.c:567",
+      "order": 3
     },
     {
       "row": 1700,
@@ -60,8 +59,14 @@
         255,
         255
       ],
-      "note": "wfe_timeout_configure 返回",
-      "order": 5
+      "g_r_b": [
+        255,
+        0,
+        255
+      ],
+      "note": "",
+      "source": "osfmk/arm/arm_init.c:561",
+      "order": 4
     },
     {
       "row": 1680,
@@ -70,8 +75,14 @@
         0,
         0
       ],
-      "note": "configure_timer_apple_regs 返回",
-      "order": 4
+      "g_r_b": [
+        0,
+        255,
+        0
+      ],
+      "note": "",
+      "source": "osfmk/arm/arm_init.c:551",
+      "order": 5
     },
     {
       "row": 1660,
@@ -80,18 +91,30 @@
         255,
         255
       ],
-      "note": "进入 timer/wfe/misc 诊断段",
-      "order": 3
+      "g_r_b": [
+        255,
+        255,
+        255
+      ],
+      "note": "",
+      "source": "osfmk/arm/arm_init.c:548",
+      "order": 6
     },
     {
       "row": 1640,
       "rgb": [
-        192,
+        128,
         128,
         255
       ],
-      "note": "processor_bootstrap 返回",
-      "order": 22
+      "g_r_b": [
+        128,
+        128,
+        255
+      ],
+      "note": "",
+      "source": "osfmk/arm/arm_init.c:705",
+      "order": 7
     },
     {
       "row": 1600,
@@ -100,8 +123,14 @@
         128,
         128
       ],
-      "note": "timer_call_init 返回（青色）",
-      "order": 21
+      "g_r_b": [
+        128,
+        0,
+        128
+      ],
+      "note": "",
+      "source": "osfmk/arm/arm_init.c:698",
+      "order": 8
     },
     {
       "row": 1580,
@@ -110,8 +139,14 @@
         255,
         128
       ],
-      "note": "cpu_bootstrap 返回",
-      "order": 12
+      "g_r_b": [
+        255,
+        0,
+        128
+      ],
+      "note": "",
+      "source": "osfmk/arm/arm_init.c:679",
+      "order": 9
     },
     {
       "row": 1560,
@@ -120,8 +155,14 @@
         192,
         255
       ],
-      "note": "thread_bootstrap 返回",
-      "order": 11
+      "g_r_b": [
+        192,
+        0,
+        255
+      ],
+      "note": "",
+      "source": "osfmk/arm/arm_init.c:667",
+      "order": 10
     },
     {
       "row": 1540,
@@ -130,8 +171,14 @@
         192,
         0
       ],
-      "note": "cpu 拓扑就绪，准备 thread_bootstrap",
-      "order": 10
+      "g_r_b": [
+        192,
+        255,
+        0
+      ],
+      "note": "",
+      "source": "osfmk/arm/arm_init.c:660",
+      "order": 11
     },
     {
       "row": 1520,
@@ -140,8 +187,14 @@
         0,
         255
       ],
-      "note": "timer/wfe/misc 整段返回",
-      "order": 9
+      "g_r_b": [
+        0,
+        128,
+        255
+      ],
+      "note": "",
+      "source": "osfmk/arm/arm_init.c:577",
+      "order": 12
     },
     {
       "row": 1500,
@@ -150,8 +203,14 @@
         128,
         0
       ],
-      "note": "boot_progress_init 返回",
-      "order": 2
+      "g_r_b": [
+        128,
+        255,
+        0
+      ],
+      "note": "",
+      "source": "osfmk/arm/arm_init.c:544",
+      "order": 13
     },
     {
       "row": 1480,
@@ -160,8 +219,14 @@
         255,
         0
       ],
-      "note": "早期 init 全过，进入 arm_vm_init 前",
-      "order": 23
+      "g_r_b": [
+        255,
+        128,
+        0
+      ],
+      "note": "",
+      "source": "osfmk/arm/arm_init.c:753",
+      "order": 14
     },
     {
       "row": 1460,
@@ -170,8 +235,14 @@
         128,
         255
       ],
-      "note": "PE_init_platform 返回",
-      "order": 1
+      "g_r_b": [
+        128,
+        0,
+        255
+      ],
+      "note": "",
+      "source": "osfmk/arm/arm_init.c:539",
+      "order": 15
     },
     {
       "row": 1440,
@@ -180,8 +251,14 @@
         0,
         128
       ],
-      "note": "进入 arm_init（擦屏后第一条）",
-      "order": 0
+      "g_r_b": [
+        0,
+        255,
+        128
+      ],
+      "note": "",
+      "source": "osfmk/arm/arm_init.c:521",
+      "order": 16
     },
     {
       "row": 1400,
@@ -190,8 +267,14 @@
         224,
         255
       ],
-      "note": "arm_vm_init 返回",
-      "order": 34
+      "g_r_b": [
+        224,
+        224,
+        255
+      ],
+      "note": "",
+      "source": "osfmk/arm/arm_init.c:759",
+      "order": 17
     },
     {
       "row": 1380,
@@ -200,8 +283,14 @@
         255,
         224
       ],
-      "note": "serial_init 完成",
-      "order": 35
+      "g_r_b": [
+        255,
+        224,
+        224
+      ],
+      "note": "",
+      "source": "osfmk/arm/arm_init.c:774",
+      "order": 18
     },
     {
       "row": 1360,
@@ -210,8 +299,14 @@
         224,
         224
       ],
-      "note": "printf/控制台初始化完成",
-      "order": 36
+      "g_r_b": [
+        224,
+        255,
+        224
+      ],
+      "note": "",
+      "source": "osfmk/arm/arm_init.c:825",
+      "order": 19
     },
     {
       "row": 1140,
@@ -220,38 +315,62 @@
         0,
         255
       ],
-      "note": "PE_create_console 返回",
-      "order": 0
+      "g_r_b": [
+        0,
+        0,
+        255
+      ],
+      "note": "g0245d v224: PE_create_console returned",
+      "source": "osfmk/arm/arm_init.c:820",
+      "order": 20
     },
     {
       "row": 1120,
       "rgb": [
+        0,
+        255,
+        255
+      ],
+      "g_r_b": [
         255,
         0,
         255
       ],
-      "note": "serial boot-arg 解析段结束",
-      "order": 0
+      "note": "g0245d v224: serial boot-arg block done",
+      "source": "osfmk/arm/arm_init.c:812",
+      "order": 21
     },
     {
       "row": 1100,
       "rgb": [
+        0,
+        255,
+        0
+      ],
+      "g_r_b": [
         255,
         0,
         0
       ],
-      "note": "首条 kprintf(\"kprintf initialized\") 返回",
-      "order": 0
+      "note": "g0245d v224: first kprintf returned",
+      "source": "osfmk/arm/arm_init.c:778",
+      "order": 22
     },
     {
       "row": 1080,
       "rgb": [
+        255,
+        0,
+        0
+      ],
+      "g_r_b": [
         0,
         255,
         0
       ],
-      "note": "kernel_startup_initialize_upto(STARTUP_SUB_KPRINTF) 返回",
-      "order": 0
+      "note": "g0245d v224: kprintf subsystem up",
+      "source": "osfmk/arm/arm_init.c:776",
+      "order": 23
     },
     {
       "row": 1060,
@@ -260,8 +379,14 @@
         128,
         0
       ],
-      "note": "进入 timer_call_init 之前",
-      "order": 20
+      "g_r_b": [
+        128,
+        128,
+        0
+      ],
+      "note": "olive: before timer_call_init",
+      "source": "osfmk/arm/arm_init.c:694",
+      "order": 24
     },
     {
       "row": 1040,
@@ -270,8 +395,14 @@
         128,
         255
       ],
-      "note": "kernel_startup_bootstrap 返回",
-      "order": 19
+      "g_r_b": [
+        128,
+        192,
+        255
+      ],
+      "note": "lavender: kernel_startup_bootstrap returned",
+      "source": "osfmk/arm/arm_init.c:689",
+      "order": 25
     },
     {
       "row": 1020,
@@ -280,8 +411,14 @@
         192,
         192
       ],
-      "note": "rtclock_early_init 返回",
-      "order": 18
+      "g_r_b": [
+        192,
+        0,
+        192
+      ],
+      "note": "bright-teal: rtclock_early_init returned",
+      "source": "osfmk/arm/arm_init.c:685",
+      "order": 26
     },
     {
       "row": 1000,
@@ -290,8 +427,14 @@
         192,
         128
       ],
-      "note": "进入 rtclock_early_init 之前",
-      "order": 13
+      "g_r_b": [
+        192,
+        255,
+        128
+      ],
+      "note": "peach: before rtclock_early_init",
+      "source": "osfmk/arm/arm_init.c:683",
+      "order": 27
     },
     {
       "row": 960,
@@ -300,8 +443,14 @@
         255,
         128
       ],
-      "note": "rtclock_early_init 函数体结束",
-      "order": 17
+      "g_r_b": [
+        255,
+        128,
+        128
+      ],
+      "note": "pale-green: function end",
+      "source": "osfmk/arm/rtclock.c:129",
+      "order": 28
     },
     {
       "row": 940,
@@ -310,8 +459,14 @@
         128,
         128
       ],
-      "note": "timebase 回调执行完（panic 已消除）",
-      "order": 16
+      "g_r_b": [
+        128,
+        255,
+        128
+      ],
+      "note": "salmon: callback ran",
+      "source": "osfmk/arm/rtclock.c:113",
+      "order": 29
     },
     {
       "row": 920,
@@ -320,8 +475,14 @@
         255,
         128
       ],
-      "note": "已从 CNTFRQ 播种 timebase 频率",
-      "order": 15
+      "g_r_b": [
+        255,
+        255,
+        128
+      ],
+      "note": "pale-yellow: seeded",
+      "source": "osfmk/arm/rtclock.c:109",
+      "order": 30
     },
     {
       "row": 900,
@@ -330,8 +491,14 @@
         128,
         128
       ],
-      "note": "已进入 rtclock_early_init",
-      "order": 14
+      "g_r_b": [
+        128,
+        0,
+        128
+      ],
+      "note": "teal: entered rtclock_early_init",
+      "source": "osfmk/arm/rtclock.c:97",
+      "order": 31
     },
     {
       "row": 860,
@@ -340,8 +507,14 @@
         128,
         192
       ],
-      "note": "arm_vm_init：内存几何与 physmap 基址算完",
-      "order": 24
+      "g_r_b": [
+        128,
+        255,
+        192
+      ],
+      "note": "",
+      "source": "osfmk/arm64/arm_vm_init.c:1950",
+      "order": 32
     },
     {
       "row": 840,
@@ -350,8 +523,14 @@
         192,
         128
       ],
-      "note": "arm_vm_init：引导页表建好（换 TTBR 前）",
-      "order": 25
+      "g_r_b": [
+        192,
+        128,
+        128
+      ],
+      "note": "",
+      "source": "osfmk/arm64/arm_vm_init.c:2180",
+      "order": 33
     },
     {
       "row": 800,
@@ -360,8 +539,14 @@
         90,
         0
       ],
-      "note": "cpu_tte/invalid_tte 已用 phystokv 重定位",
-      "order": 33
+      "g_r_b": [
+        90,
+        170,
+        0
+      ],
+      "note": "RGB(170,90,0)  brownish",
+      "source": "osfmk/arm64/arm_vm_init.c:2269",
+      "order": 34
     },
     {
       "row": 780,
@@ -370,8 +555,14 @@
         150,
         150
       ],
-      "note": "TLB 已刷、仍能执行（TTBR1 生效 + 身份映射保留）",
-      "order": 32
+      "g_r_b": [
+        150,
+        150,
+        150
+      ],
+      "note": "RGB(150,150,150) grey",
+      "source": "osfmk/arm64/arm_vm_init.c:2265",
+      "order": 35
     },
     {
       "row": 770,
@@ -380,8 +571,14 @@
         140,
         60
       ],
-      "note": "TTBR0 仍为 V=P 表（v223 故意不置 invalid），探针保持身份映射",
-      "order": 31
+      "g_r_b": [
+        140,
+        255,
+        60
+      ],
+      "note": "RGB(255,140,60) light orange",
+      "source": "osfmk/arm64/arm_vm_init.c:2261",
+      "order": 36
     },
     {
       "row": 760,
@@ -390,8 +587,14 @@
         150,
         0
       ],
-      "note": "TTBR0 决策点（v223：保持不变，仍可身份寻址）",
-      "order": 30
+      "g_r_b": [
+        150,
+        150,
+        0
+      ],
+      "note": "RGB(150,150,0) dark yellow",
+      "source": "osfmk/arm64/arm_vm_init.c:2252",
+      "order": 37
     },
     {
       "row": 740,
@@ -400,8 +603,14 @@
         0,
         150
       ],
-      "note": "ml_enable_monitor 返回（或未编译）",
-      "order": 29
+      "g_r_b": [
+        0,
+        0,
+        150
+      ],
+      "note": "RGB(0,0,150)   dark blue",
+      "source": "osfmk/arm64/arm_vm_init.c:2238",
+      "order": 38
     },
     {
       "row": 720,
@@ -410,8 +619,14 @@
         150,
         0
       ],
-      "note": "TTBR1 已指向 KVA 页表",
-      "order": 28
+      "g_r_b": [
+        150,
+        0,
+        0
+      ],
+      "note": "RGB(0,150,0)   dark green",
+      "source": "osfmk/arm64/arm_vm_init.c:2233",
+      "order": 39
     },
     {
       "row": 700,
@@ -420,8 +635,14 @@
         0,
         0
       ],
-      "note": "TTBR 切换：进入 TCR 修正与 set_mmu_ttb_alternate 之前",
-      "order": 26
+      "g_r_b": [
+        0,
+        150,
+        0
+      ],
+      "note": "RGB(150,0,0)   dark red",
+      "source": "osfmk/arm64/arm_vm_init.c:2185",
+      "order": 40
     },
     {
       "row": 660,
@@ -430,8 +651,14 @@
         255,
         255
       ],
-      "note": "physmap 能换算帧缓冲地址（青色）；若为洋红 RGB(255,0,255) 则换算为 0",
-      "order": 38
+      "rgb_if_false": [
+        255,
+        0,
+        255
+      ],
+      "note": "cyan = g0245d_fb_kva() != 0; magenta = it returned 0",
+      "source": "override",
+      "order": 41
     },
     {
       "row": 640,
@@ -440,8 +667,14 @@
         255,
         0
       ],
-      "note": "帧缓冲 PA 在 DRAM 范围内（黄色）；若为深蓝 RGB(0,0,120) 则超出 memSize",
-      "order": 37
+      "rgb_if_false": [
+        0,
+        0,
+        120
+      ],
+      "note": "yellow = fb PA inside [gPhysBase,+real_phys_size); deep blue = outside",
+      "source": "override",
+      "order": 42
     },
     {
       "row": 620,
@@ -450,8 +683,17 @@
         0,
         120
       ],
-      "note": "TCR_EL1.T1SZ/TG1 已修正（TTBR1 打开）",
-      "order": 27
+      "g_r_b": [
+        0,
+        200,
+        120
+      ],
+      "note": "",
+      "source": "osfmk/arm64/arm_vm_init.c:2210",
+      "order": 43
     }
+  ],
+  "notes": [
+    "v224 = 去掉 v225 的 pe_init 四条后的集合，颜色已按 (g,r,b) 参数序修正"
   ]
 }
