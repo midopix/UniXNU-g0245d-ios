@@ -43,6 +43,9 @@ PATTERNS = [
     (re.compile(r'g0245d_fb_band\s*\(\s*[^,]+,\s*' + NUM + r'\s*,\s*' + NUM + r'\s*,\s*' + NUM + r'\s*,\s*' + NUM), 1),
     (re.compile(r'g0245d_wfe_mark\s*\(\s*' + NUM + r'\s*,\s*' + NUM + r'\s*,\s*' + NUM + r'\s*,\s*' + NUM), 1),
     (re.compile(r'g0245d_band_here\s*\(\s*' + NUM + r'\s*,\s*' + NUM + r'\s*,\s*' + NUM + r'\s*,\s*' + NUM), 1),
+    # v226: every band call in arm_init.c goes through g0245d_mark(), which
+    # also prints a text line; the trailing string is the note.
+    (re.compile(r'g0245d_mark\s*\(\s*[^,]+,\s*' + NUM + r'\s*,\s*' + NUM + r'\s*,\s*' + NUM + r'\s*,\s*' + NUM + r'\s*,\s*"([^"]*)"'), 1),
 ]
 
 
@@ -65,7 +68,9 @@ def collect(root):
                     continue
                 row, g, r, b = (val(m.group(i)) for i in range(1, 5))
                 note = ''
-                if '/*' in line:
+                if m.lastindex and m.lastindex >= 5 and m.group(5):
+                    note = m.group(5).strip()
+                elif '/*' in line:
                     note = line.split('/*', 1)[1].strip()
                     if note.endswith('*/'):
                         note = note[:-2].strip()
