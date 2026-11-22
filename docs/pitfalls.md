@@ -347,3 +347,39 @@ was the only class descending from a prelinked base class, which is exactly why
 the loop survived 166 iterations and died on the last one. "It got through 166
 elements, so the data is fine" is the wrong inference -- element order is link
 order, and the pathological one is wherever its object file happened to land.
+
+## Reading a clearing ring
+
+**Absence of a line is not evidence that the code did not run.** The ring holds
+32 rows and clears on wrap, so a boot that is now at `175 v232 InitIOKit done`
+has already scrolled `pml enter` and the whole 167-entry pass 2 off the top.
+Before concluding "postModLoad never finished", check whether its own follow-on
+traces (`ConfigureIOKit done`) are in the *tail* -- they are the ones that should
+be there. The failure signature is always "the next expected line is missing
+while the preceding one is present", never "these lines are absent from the
+screen".
+
+**Sequence numbers let you reconstruct what scrolled away.** `167..175` in a
+32-row ring that clears on wrap means the ring wrapped at `167 - 32 = 135`, so
+the visible window is contiguous and nothing was lost in the middle. That is a
+two-line check that turns a photograph into a monotonic log.
+
+## Instrument the caller and the callee separately
+
+`ConfigureIOKit()` is `assert(gRootNub != NULL); gRootNub->configureDefaults();`.
+A stop between those two has three very different explanations -- a failed
+assert whose panic never reached the panel, a bad vtable, or something inside
+the callee -- and one trace before the assert, one after it, and one after the
+call separates them without another round trip. Whenever a stop is "somewhere in
+this call", bracket the call *and* the statements around it.
+
+## Read the shipped device tree before instrumenting a device-tree consumer
+
+`dtc -I dtb -O dts device-tree/hardware.dtb` takes a second and lists the five
+top-level nodes this platform ships (`cpus`, `psci`, `timer`, `soc`,
+`reserved-memory`). That immediately predicts the behaviour of
+`IOPlatformExpertDevice::configureDefaults()`: `fromPath("/options")` returns
+NULL, `getProperty("serial-number")` returns NULL, `/chosen` exists but has no
+`unique-chip-id`, so the function should be three cheap no-ops. Instrumenting
+anyway is still right -- but now the expected trace sequence is known in
+advance, and any deviation is the finding.
