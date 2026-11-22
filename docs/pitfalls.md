@@ -569,3 +569,21 @@ v232 and v234; it keeps recurring because each new file has a different
 "natural" place to put an extern. The rule that actually works: after adding
 a trace call, search the file for that identifier and verify the declaration
 appears at a lower line number than every use.
+
+## Same name, different call site
+
+`kperf_init_early()` and `kperf_init()` are different functions at different
+points in the boot. The first waits for every advertised CPU and hung here;
+the second runs from `ktrace_startup()` (a STARTUP(KTRACE) routine) and had
+already completed successfully among the 3917 startup entries. Before
+disabling a family of calls, check *each* call site: skipping both here would
+have removed working timer initialisation for no reason.
+
+## A wait for "all CPUs" is a bring-up deadlock
+
+`ml_wait_max_cpus()` assumes the platform has already discovered its real CPU
+topology. On a bring-up kernel with the boot CPU only but a stale
+`machine_info.max_cpus`, it is an infinite wait with no allocation and no
+output -- the same silent signature as the prelink and NULL-table faults.
+Skipping the consumer gets the boot moving, but the real fix is to correct
+where `max_cpus` comes from before any CPU-hotplug path uses it.
