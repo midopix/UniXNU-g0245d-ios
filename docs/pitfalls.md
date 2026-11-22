@@ -232,3 +232,19 @@ is two `adr` + two `str` + `ret`: clang proved `this == &sBootstrapObject`, so t
 When the probe row names the *last* entry and the log stops there, the stop is
 after the call, not inside it — bracket the call and the statements that follow
 before rewriting the constructor.
+
+## Two log channels that disagree
+
+**Do the wrap arithmetic before believing either channel.** v235's panel showed
+a pinned row that decodes to the last entry of `__mod_init_func` together with a
+scrolling ring holding only the first two lines of the segment walk. Program
+order says those cannot both be true: reaching the third section prints at least
+eight more lines. The arithmetic that settles it is `nscroll = rows - 3 = 32`, so
+a line sitting at row 0 is a wrap line, and the wrap line two lines back was
+`71 - 32 = 39`; rows 0 and 1 therefore hold the *newest* output, not the oldest.
+
+**Give the pinned row a sequence number.** A row that says only `97` cannot
+distinguish "the walk finished" from "the console stopped advancing". A row that
+says `97/98 s72` can: if the sequence is still 72 while the index is 97, the
+console is frozen and the walk is fine; if it says `s87`, the screen is stale and
+the device rebooted. Print the counter that the other channel increments.
