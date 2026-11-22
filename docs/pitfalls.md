@@ -605,3 +605,22 @@ the earlier `cpu_stack_alloc()` stop as something specific to its flags or
 its lock window, rather than a broken allocator. Keep earlier conclusions provisional: later
 breadcrumbs frequently tell you which of two explanations was right without
 another experiment.
+
+## Verify the binary before blaming the new code
+
+A new build appeared to stop much earlier than the previous one. Before
+changing anything, compare the two kernels: file size, every LC_SEGMENT_64
+address and vmsize, the addresses of the functions and globals in question,
+the payload contents and the flash log. Here all of them were identical --
+the new code could not possibly run at the reported stop. When a new version
+"regresses" to a point its diff does not touch, suspect the observation
+first: a stale frame, a ring wrap photographed at the wrong moment, or a
+boot that did not load the image you think it did.
+
+## Bring a marker, not a theory
+
+To settle it, add a *decisive marker* rather than a hypothesis-driven fix:
+one trace on each side of the suspicious operation and one on the pinned
+row. One photograph then distinguishes "wrong image", "dies before the
+operation", "dies in the operation" and "was never broken". This is much
+cheaper and much more reliable than reverting speculative changes.
