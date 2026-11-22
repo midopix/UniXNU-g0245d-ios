@@ -1,0 +1,990 @@
+{
+  "version": "v231",
+  "generated_by": "scripts/linux/gen_manifest.py",
+  "mapping": "panel line = 1919 - row; top of screen = largest row",
+  "color_note": "rgb here is what the panel shows: byte0=G, byte1=R, byte2=B",
+  "checkpoints": [
+    {
+      "row": 1900,
+      "rgb": [
+        255,
+        0,
+        255
+      ],
+      "g_r_b": [
+        0,
+        255,
+        255
+      ],
+      "note": "chosen dram-base/size done",
+      "source": "osfmk/arm/arm_init.c:1297",
+      "order": 1
+    },
+    {
+      "row": 1880,
+      "rgb": [
+        0,
+        255,
+        192
+      ],
+      "g_r_b": [
+        255,
+        0,
+        192
+      ],
+      "note": "PE_init_cpu/fiq returned",
+      "source": "osfmk/arm/arm_init.c:1268",
+      "order": 2
+    },
+    {
+      "row": 1860,
+      "rgb": [
+        208,
+        255,
+        0
+      ],
+      "g_r_b": [
+        255,
+        208,
+        0
+      ],
+      "note": "cpu_timebase_init returned",
+      "source": "osfmk/arm/arm_init.c:1259",
+      "order": 3
+    },
+    {
+      "row": 1840,
+      "rgb": [
+        192,
+        0,
+        64
+      ],
+      "g_r_b": [
+        0,
+        192,
+        64
+      ],
+      "note": "ml_map_cpu_pio returned",
+      "source": "osfmk/arm/arm_init.c:1255",
+      "order": 4
+    },
+    {
+      "row": 1820,
+      "rgb": [
+        64,
+        255,
+        0
+      ],
+      "g_r_b": [
+        255,
+        64,
+        0
+      ],
+      "note": "PE_init_platform(TRUE) returned",
+      "source": "osfmk/arm/arm_init.c:1246",
+      "order": 5
+    },
+    {
+      "row": 1800,
+      "rgb": [
+        0,
+        96,
+        255
+      ],
+      "g_r_b": [
+        96,
+        0,
+        255
+      ],
+      "note": "cpu_machine_idle_init returned",
+      "source": "osfmk/arm/arm_init.c:1243",
+      "order": 6
+    },
+    {
+      "row": 1780,
+      "rgb": [
+        160,
+        0,
+        255
+      ],
+      "g_r_b": [
+        0,
+        160,
+        255
+      ],
+      "note": "after dump_kva_space",
+      "source": "osfmk/arm/arm_init.c:1241",
+      "order": 7
+    },
+    {
+      "row": 1760,
+      "rgb": [
+        0,
+        255,
+        0
+      ],
+      "g_r_b": [
+        255,
+        0,
+        0
+      ],
+      "note": "arm_init entry",
+      "source": "osfmk/arm/arm_init.c:973",
+      "order": 8
+    },
+    {
+      "row": 1740,
+      "rgb": [
+        255,
+        0,
+        255
+      ],
+      "g_r_b": [
+        0,
+        255,
+        255
+      ],
+      "note": "before PE_init_platform tail",
+      "source": "osfmk/arm/arm_init.c:970",
+      "order": 9
+    },
+    {
+      "row": 1720,
+      "rgb": [
+        255,
+        255,
+        0
+      ],
+      "g_r_b": [
+        255,
+        255,
+        0
+      ],
+      "note": "after wfe skip",
+      "source": "osfmk/arm/arm_init.c:966",
+      "order": 10
+    },
+    {
+      "row": 1700,
+      "rgb": [
+        0,
+        255,
+        255
+      ],
+      "g_r_b": [
+        255,
+        0,
+        255
+      ],
+      "note": "wfe block skipped (v217)",
+      "source": "osfmk/arm/arm_init.c:960",
+      "order": 11
+    },
+    {
+      "row": 1680,
+      "rgb": [
+        255,
+        0,
+        0
+      ],
+      "g_r_b": [
+        0,
+        255,
+        0
+      ],
+      "note": "configure_timer_apple_regs done",
+      "source": "osfmk/arm/arm_init.c:950",
+      "order": 12
+    },
+    {
+      "row": 1660,
+      "rgb": [
+        255,
+        255,
+        255
+      ],
+      "g_r_b": [
+        255,
+        255,
+        255
+      ],
+      "note": "entering timer/apple diag",
+      "source": "osfmk/arm/arm_init.c:947",
+      "order": 13
+    },
+    {
+      "row": 1640,
+      "rgb": [
+        128,
+        255,
+        0
+      ],
+      "g_r_b": [
+        255,
+        128,
+        0
+      ],
+      "note": "",
+      "source": "osfmk/arm64/machine_routines.c:2347",
+      "order": 14
+    },
+    {
+      "row": 1620,
+      "rgb": [
+        255,
+        0,
+        128
+      ],
+      "g_r_b": [
+        0,
+        255,
+        128
+      ],
+      "note": "",
+      "source": "osfmk/arm64/machine_routines.c:2345",
+      "order": 15
+    },
+    {
+      "row": 1600,
+      "rgb": [
+        0,
+        0,
+        255
+      ],
+      "g_r_b": [
+        0,
+        0,
+        255
+      ],
+      "note": "",
+      "source": "osfmk/arm64/machine_routines.c:2319",
+      "order": 16
+    },
+    {
+      "row": 1580,
+      "rgb": [
+        0,
+        255,
+        0
+      ],
+      "g_r_b": [
+        255,
+        0,
+        0
+      ],
+      "note": "",
+      "source": "osfmk/arm64/machine_routines.c:2315",
+      "order": 17
+    },
+    {
+      "row": 1560,
+      "rgb": [
+        0,
+        255,
+        255
+      ],
+      "g_r_b": [
+        255,
+        0,
+        255
+      ],
+      "note": "",
+      "source": "osfmk/arm64/machine_routines.c:2313",
+      "order": 18
+    },
+    {
+      "row": 1540,
+      "rgb": [
+        255,
+        255,
+        0
+      ],
+      "g_r_b": [
+        255,
+        255,
+        0
+      ],
+      "note": "",
+      "source": "osfmk/arm64/machine_routines.c:2311",
+      "order": 19
+    },
+    {
+      "row": 1520,
+      "rgb": [
+        255,
+        0,
+        255
+      ],
+      "g_r_b": [
+        0,
+        255,
+        255
+      ],
+      "note": "",
+      "source": "osfmk/arm64/machine_routines.c:2301",
+      "order": 20
+    },
+    {
+      "row": 1500,
+      "rgb": [
+        255,
+        128,
+        0
+      ],
+      "g_r_b": [
+        128,
+        255,
+        0
+      ],
+      "note": "boot_progress_init returned",
+      "source": "osfmk/arm/arm_init.c:943",
+      "order": 21
+    },
+    {
+      "row": 1480,
+      "rgb": [
+        128,
+        255,
+        0
+      ],
+      "g_r_b": [
+        255,
+        128,
+        0
+      ],
+      "note": "pre-arm_vm_init tail done",
+      "source": "osfmk/arm/arm_init.c:1152",
+      "order": 22
+    },
+    {
+      "row": 1460,
+      "rgb": [
+        0,
+        128,
+        255
+      ],
+      "g_r_b": [
+        128,
+        0,
+        255
+      ],
+      "note": "PE_init_platform returned",
+      "source": "osfmk/arm/arm_init.c:938",
+      "order": 23
+    },
+    {
+      "row": 1440,
+      "rgb": [
+        255,
+        0,
+        128
+      ],
+      "g_r_b": [
+        0,
+        255,
+        128
+      ],
+      "note": "arm_init body reached",
+      "source": "osfmk/arm/arm_init.c:920",
+      "order": 24
+    },
+    {
+      "row": 1400,
+      "rgb": [
+        224,
+        224,
+        255
+      ],
+      "g_r_b": [
+        224,
+        224,
+        255
+      ],
+      "note": "arm_vm_init returned",
+      "source": "osfmk/arm/arm_init.c:1158",
+      "order": 25
+    },
+    {
+      "row": 1380,
+      "rgb": [
+        224,
+        255,
+        224
+      ],
+      "g_r_b": [
+        255,
+        224,
+        224
+      ],
+      "note": "serial_init returned",
+      "source": "osfmk/arm/arm_init.c:1173",
+      "order": 26
+    },
+    {
+      "row": 1360,
+      "rgb": [
+        255,
+        224,
+        224
+      ],
+      "g_r_b": [
+        224,
+        255,
+        224
+      ],
+      "note": "PE_init_printf returned",
+      "source": "osfmk/arm/arm_init.c:1224",
+      "order": 27
+    },
+    {
+      "row": 1340,
+      "rgb": [
+        32,
+        32,
+        255
+      ],
+      "g_r_b": [
+        32,
+        32,
+        255
+      ],
+      "note": "kprintf routed to fb console",
+      "source": "osfmk/arm/arm_init.c:1233",
+      "order": 28
+    },
+    {
+      "row": 1260,
+      "rgb": [
+        128,
+        255,
+        0
+      ],
+      "g_r_b": [
+        255,
+        128,
+        0
+      ],
+      "note": "g0245d v225: PE_create_console leaving",
+      "source": "pexpert/arm/pe_init.c:556",
+      "order": 29
+    },
+    {
+      "row": 1240,
+      "rgb": [
+        255,
+        0,
+        255
+      ],
+      "g_r_b": [
+        0,
+        255,
+        255
+      ],
+      "note": "g0245d v225: PE_initialize_console returned",
+      "source": "pexpert/arm/pe_init.c:555",
+      "order": 30
+    },
+    {
+      "row": 1218,
+      "rgb": [
+        255,
+        127,
+        0
+      ],
+      "g_r_b": [
+        127,
+        255,
+        0
+      ],
+      "note": "g0245d v227: text mode",
+      "source": "pexpert/arm/pe_init.c:552",
+      "order": 31
+    },
+    {
+      "row": 1212,
+      "rgb": [
+        255,
+        0,
+        127
+      ],
+      "g_r_b": [
+        0,
+        255,
+        127
+      ],
+      "note": "g0245d v227: graphics mode",
+      "source": "pexpert/arm/pe_init.c:549",
+      "order": 32
+    },
+    {
+      "row": 1206,
+      "rgb": [
+        0,
+        255,
+        127
+      ],
+      "g_r_b": [
+        255,
+        0,
+        127
+      ],
+      "note": "g0245d v227: panic-log probe skipped",
+      "source": "pexpert/arm/pe_init.c:546",
+      "order": 33
+    },
+    {
+      "row": 1200,
+      "rgb": [
+        255,
+        255,
+        0
+      ],
+      "g_r_b": [
+        255,
+        255,
+        0
+      ],
+      "note": "g0245d v225: entered PE_create_console",
+      "source": "pexpert/arm/pe_init.c:531",
+      "order": 34
+    },
+    {
+      "row": 1140,
+      "rgb": [
+        0,
+        0,
+        255
+      ],
+      "g_r_b": [
+        0,
+        0,
+        255
+      ],
+      "note": "PE_create_console returned",
+      "source": "osfmk/arm/arm_init.c:1219",
+      "order": 35
+    },
+    {
+      "row": 1120,
+      "rgb": [
+        0,
+        255,
+        255
+      ],
+      "g_r_b": [
+        255,
+        0,
+        255
+      ],
+      "note": "serial boot-arg block done",
+      "source": "osfmk/arm/arm_init.c:1211",
+      "order": 36
+    },
+    {
+      "row": 1100,
+      "rgb": [
+        0,
+        255,
+        0
+      ],
+      "g_r_b": [
+        255,
+        0,
+        0
+      ],
+      "note": "first kprintf returned",
+      "source": "osfmk/arm/arm_init.c:1177",
+      "order": 37
+    },
+    {
+      "row": 1080,
+      "rgb": [
+        255,
+        0,
+        0
+      ],
+      "g_r_b": [
+        0,
+        255,
+        0
+      ],
+      "note": "startup_upto(KPRINTF) returned",
+      "source": "osfmk/arm/arm_init.c:1175",
+      "order": 38
+    },
+    {
+      "row": 1060,
+      "rgb": [
+        128,
+        128,
+        0
+      ],
+      "g_r_b": [
+        128,
+        128,
+        0
+      ],
+      "note": "timer_call_init enter",
+      "source": "osfmk/arm/arm_init.c:1093",
+      "order": 39
+    },
+    {
+      "row": 1040,
+      "rgb": [
+        192,
+        128,
+        255
+      ],
+      "g_r_b": [
+        128,
+        192,
+        255
+      ],
+      "note": "kernel_startup_bootstrap ret",
+      "source": "osfmk/arm/arm_init.c:1088",
+      "order": 40
+    },
+    {
+      "row": 1020,
+      "rgb": [
+        0,
+        192,
+        192
+      ],
+      "g_r_b": [
+        192,
+        0,
+        192
+      ],
+      "note": "rtclock_early_init ret",
+      "source": "osfmk/arm/arm_init.c:1084",
+      "order": 41
+    },
+    {
+      "row": 1000,
+      "rgb": [
+        255,
+        192,
+        128
+      ],
+      "g_r_b": [
+        192,
+        255,
+        128
+      ],
+      "note": "before rtclock_early_init",
+      "source": "osfmk/arm/arm_init.c:1082",
+      "order": 42
+    },
+    {
+      "row": 960,
+      "rgb": [
+        128,
+        255,
+        128
+      ],
+      "g_r_b": [
+        255,
+        128,
+        128
+      ],
+      "note": "pale-green: function end",
+      "source": "osfmk/arm/rtclock.c:129",
+      "order": 43
+    },
+    {
+      "row": 940,
+      "rgb": [
+        255,
+        128,
+        128
+      ],
+      "g_r_b": [
+        128,
+        255,
+        128
+      ],
+      "note": "salmon: callback ran",
+      "source": "osfmk/arm/rtclock.c:113",
+      "order": 44
+    },
+    {
+      "row": 920,
+      "rgb": [
+        255,
+        255,
+        128
+      ],
+      "g_r_b": [
+        255,
+        255,
+        128
+      ],
+      "note": "pale-yellow: seeded",
+      "source": "osfmk/arm/rtclock.c:109",
+      "order": 45
+    },
+    {
+      "row": 900,
+      "rgb": [
+        0,
+        128,
+        128
+      ],
+      "g_r_b": [
+        128,
+        0,
+        128
+      ],
+      "note": "teal: entered rtclock_early_init",
+      "source": "osfmk/arm/rtclock.c:97",
+      "order": 46
+    },
+    {
+      "row": 860,
+      "rgb": [
+        255,
+        128,
+        192
+      ],
+      "g_r_b": [
+        128,
+        255,
+        192
+      ],
+      "note": "",
+      "source": "osfmk/arm64/arm_vm_init.c:1950",
+      "order": 47
+    },
+    {
+      "row": 840,
+      "rgb": [
+        128,
+        192,
+        128
+      ],
+      "g_r_b": [
+        192,
+        128,
+        128
+      ],
+      "note": "",
+      "source": "osfmk/arm64/arm_vm_init.c:2180",
+      "order": 48
+    },
+    {
+      "row": 800,
+      "rgb": [
+        170,
+        90,
+        0
+      ],
+      "g_r_b": [
+        90,
+        170,
+        0
+      ],
+      "note": "RGB(170,90,0)  brownish",
+      "source": "osfmk/arm64/arm_vm_init.c:2269",
+      "order": 49
+    },
+    {
+      "row": 780,
+      "rgb": [
+        150,
+        150,
+        150
+      ],
+      "g_r_b": [
+        150,
+        150,
+        150
+      ],
+      "note": "RGB(150,150,150) grey",
+      "source": "osfmk/arm64/arm_vm_init.c:2265",
+      "order": 50
+    },
+    {
+      "row": 770,
+      "rgb": [
+        255,
+        140,
+        60
+      ],
+      "g_r_b": [
+        140,
+        255,
+        60
+      ],
+      "note": "RGB(255,140,60) light orange",
+      "source": "osfmk/arm64/arm_vm_init.c:2261",
+      "order": 51
+    },
+    {
+      "row": 760,
+      "rgb": [
+        150,
+        150,
+        0
+      ],
+      "g_r_b": [
+        150,
+        150,
+        0
+      ],
+      "note": "RGB(150,150,0) dark yellow",
+      "source": "osfmk/arm64/arm_vm_init.c:2252",
+      "order": 52
+    },
+    {
+      "row": 740,
+      "rgb": [
+        0,
+        0,
+        150
+      ],
+      "g_r_b": [
+        0,
+        0,
+        150
+      ],
+      "note": "RGB(0,0,150)   dark blue",
+      "source": "osfmk/arm64/arm_vm_init.c:2238",
+      "order": 53
+    },
+    {
+      "row": 720,
+      "rgb": [
+        0,
+        150,
+        0
+      ],
+      "g_r_b": [
+        150,
+        0,
+        0
+      ],
+      "note": "RGB(0,150,0)   dark green",
+      "source": "osfmk/arm64/arm_vm_init.c:2233",
+      "order": 54
+    },
+    {
+      "row": 700,
+      "rgb": [
+        150,
+        0,
+        0
+      ],
+      "g_r_b": [
+        0,
+        150,
+        0
+      ],
+      "note": "RGB(150,0,0)   dark red",
+      "source": "osfmk/arm64/arm_vm_init.c:2185",
+      "order": 55
+    },
+    {
+      "row": 660,
+      "rgb": [
+        0,
+        255,
+        255
+      ],
+      "rgb_if_false": [
+        255,
+        0,
+        255
+      ],
+      "note": "cyan = g0245d_fb_kva() != 0; magenta = it returned 0",
+      "source": "override",
+      "order": 56
+    },
+    {
+      "row": 640,
+      "rgb": [
+        255,
+        255,
+        0
+      ],
+      "rgb_if_false": [
+        0,
+        0,
+        120
+      ],
+      "note": "yellow = fb PA inside [gPhysBase,+real_phys_size); deep blue = outside",
+      "source": "override",
+      "order": 57
+    },
+    {
+      "row": 620,
+      "rgb": [
+        200,
+        0,
+        120
+      ],
+      "g_r_b": [
+        0,
+        200,
+        120
+      ],
+      "note": "",
+      "source": "osfmk/arm64/arm_vm_init.c:2210",
+      "order": 58
+    }
+  ],
+  "traces": [
+    {
+      "label": "v230 enter early_random",
+      "source": "osfmk/arm/arm_init.c:1306"
+    },
+    {
+      "label": "v230 stack guard seeded",
+      "source": "osfmk/arm/arm_init.c:1312"
+    },
+    {
+      "label": "v230 call machine_startup",
+      "source": "osfmk/arm/arm_init.c:1313"
+    },
+    {
+      "label": "v230 machine_startup entered",
+      "source": "osfmk/arm64/machine_routines.c:484"
+    },
+    {
+      "label": "v230 machine_conf returned",
+      "source": "osfmk/arm64/machine_routines.c:494"
+    },
+    {
+      "label": "v230 call kernel_bootstrap",
+      "source": "osfmk/arm64/machine_routines.c:500"
+    },
+    {
+      "label": "v230 early_random first call",
+      "source": "osfmk/prng/prng_random.c:209"
+    },
+    {
+      "label": "v230 bootseed_init returned",
+      "source": "osfmk/prng/prng_random.c:211"
+    },
+    {
+      "label": "v230 before ml_get_timebase",
+      "source": "osfmk/prng/prng_random.c:222"
+    },
+    {
+      "label": "v230 timebase",
+      "source": "osfmk/prng/prng_random.c:224"
+    },
+    {
+      "label": "v230 drbg initialised",
+      "source": "osfmk/prng/prng_random.c:233"
+    },
+    {
+      "label": "v230 early_random calls",
+      "source": "osfmk/prng/prng_random.c:237"
+    },
+    {
+      "label": "v230 kernel_bootstrap entered",
+      "source": "osfmk/kern/startup.c:441"
+    }
+  ]
+}
