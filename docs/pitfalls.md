@@ -444,3 +444,32 @@ address read from such a line looked like `...ae57?` when the truth was
 offline table, not by the fuzzy last line. Second, keep the important value
 short: `su 8` stays legible where a 38-character address line does not, and
 duplicate it on a pinned row that is redrawn whole.
+
+## A NULL function table that nobody registers
+
+`kmem_crypto_init()` is three short statements, yet the machine stopped there
+with no output. Both of its crypto calls go through one global pointer:
+
+```c
+return g_crypto_funcs->random_kmem_ctx_size_fn();
+g_crypto_funcs->random_kmem_init_fn(ctx);
+```
+
+The linker put a zero in `__DATA_CONST` for `g_crypto_funcs`, and a full
+disassembly of the kernel showed that `register_crypto_functions()` is never
+called -- its only mentions are its own symbol and an internal branch. The
+registrar lives in a corecrypto kext that this skip-prelink build never links.
+When a call site is a single indirect load through a global, check the global's
+initial value **and** the number of call sites of the function that sets it.
+One `llvm-nm`, one 8-byte read, one disassembly grep: three offline checks that
+find the answer without another boot.
+
+## When two independent sources agree, stop investigating
+
+The pinned row read `su 3915 079ade90`, and replaying the kernel's startup sort
+said entry #3915 is `_kmem_crypto_init` at exactly `0xfffffff0079ade90`. Two
+different channels -- panel text and an offline simulation of `qsort()` on the
+Mach-O -- agreed on both the index and the address. That is enough: do not keep
+trying to read a fuzzy line or to invent a third explanation. Use the
+agreement to move to the *next* question, which here was "what does this
+function call?"
