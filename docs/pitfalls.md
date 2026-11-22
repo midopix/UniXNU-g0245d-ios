@@ -383,3 +383,41 @@ NULL, `getProperty("serial-number")` returns NULL, `/chosen` exists but has no
 `unique-chip-id`, so the function should be three cheap no-ops. Instrumenting
 anyway is still right -- but now the expected trace sequence is known in
 advance, and any deviation is the finding.
+
+## The device tree you can dump is not the ADT the kernel sees
+
+`dtc -I dtb -O dts` on the shipped blob showed five top-level nodes and no
+`/options`, so `createNVRAM()` "obviously" returns at its first statement. It
+did not: the panel printed `options found` and went on to build, init, attach
+and start an `IODTNVRAM`. The runtime that loads the kernel adds nodes to the
+device tree before handing it over -- `/chosen` *and* `/options` both come from
+there. An offline dump predicts the behaviour of the *blob*, not of the *ADT*;
+use it to form a hypothesis and let the instrumentation settle it.
+
+## One-bit experiments beat finer instrumentation
+
+When a stop sits inside a two-statement function, the cheapest next build is
+not "trace every line" but "delete the call and see whether the next trace
+appears". Here `generatePlatformUUID()` contains exactly one risky call
+(`IORegistryEntry::fromPath("/chosen")`), so skipping the whole function answers
+"is it this function or is it the console?" in one photo. Design the build so
+that both answers are informative, and leave the skipped call in a comment with
+its reason, so restoring it is one edit.
+
+## A half-drawn line means the flush did not finish
+
+A console line whose glyphs survive only as isolated horizontal strokes -- while
+the line above it is dim but complete -- was written to the framebuffer and then
+lost, because only some cache lines were written back before the machine died.
+That is a different signature from "the code after this line never ran": it says
+the death is inside the drawing or the `dc civac` flush, not after the next
+statement. Read the tail of the ring with that in mind before blaming the code
+that was about to execute.
+
+## Trace function pointers when the table has no names
+
+`kernel_startup_initialize_upto()` walks a table of `{ subsystem, rank, func,
+arg }` and only logs the subsystem, so a stop inside a subsystem of forty
+routines is anonymous. Logging `cur->func` before each call turns every entry
+into an address, and `llvm-nm -n kernel.macho` turns the address back into a
+file and a symbol -- no need for the table to carry strings.
