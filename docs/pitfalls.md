@@ -473,3 +473,26 @@ Mach-O -- agreed on both the index and the address. That is enough: do not keep
 trying to read a fuzzy line or to invent a third explanation. Use the
 agreement to move to the *next* question, which here was "what does this
 function call?"
+
+## Fix the family, not just the member
+
+`g_crypto_funcs` was NULL and three unrelated-looking boot stages died on it:
+`kmem_crypto_init`, then the trust-cache loader, and later still the code
+signing paths. Skipping one consumer at a time costs one reboot per consumer.
+Once the shared dependency is identified, grep for the other users of the same
+global and skip all the non-essential ones in one build. The opposite also
+holds: a known landmine that is *about to* be detonated should be removed
+before the code path reaches it -- here the `NativeAES` personality in
+`KernelConfigTables.cpp` was deleted the same build that first bracketed
+`StartIOKitMatching()`, because its superclass pointer was already proven to
+be an unmapped prelink symbol.
+
+## Do not assume the screen grab steals your console
+
+`initialize_screen(NULL, kPEAcquireScreen)` sounds like it must take over the
+display, but the v244 panel printed `screen init enter` and `screen init done`
+and kept working. Bracket a suspicious transition with two traces and let the
+panel answer; rewriting the console's framebuffer base beforehand would have
+been work for a problem that did not exist. The same applies to `spllo()`:
+enabling interrupts did not kill this bring-up either, so both fears were
+removed by one photograph instead of two preemptive patches.
