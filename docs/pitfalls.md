@@ -545,3 +545,27 @@ the "real bug" in the sense of a fix to upstream code -- they are all pieces
 of an Apple-platform kernel that have no meaning on this SoC. The useful unit
 of work here is "prove one more stage is not the wall", not "find the single
 root cause".
+
+## Reuse the stage names the kernel already has
+
+`bsd_init()` is 1200 lines, but it calls `bsd_init_kprintf()` at 47 named
+points; with `DEBUG_BSDINIT == 0` the macro threw those names away into
+`boot_progress_stage()`, which a bring-up console cannot see. Extending the
+macro to also feed the framebuffer bought 47 labelled breadcrumbs without
+touching the function body. Before instrumenting a large function, look for
+an existing stage-log macro, assert helper or progress callback: it already
+has the interesting names and call sites picked out.
+
+The helper must truncate at the newline, though: the existing literals end
+in `\n`, and passing them straight to a printf-style trace doubles the number
+of rows in a 32-row ring.
+
+## The declaration is still too late if it is below the call
+
+One build failed with `call to undeclared function 'g0245d_trace'` because the
+new extern was added next to the macro definition, while the first call was
+three lines *above* it. This is the same mistake that cost rounds at v229,
+v232 and v234; it keeps recurring because each new file has a different
+"natural" place to put an extern. The rule that actually works: after adding
+a trace call, search the file for that identifier and verify the declaration
+appears at a lower line number than every use.
