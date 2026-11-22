@@ -284,3 +284,35 @@ silently when the ready flag is clear. Two log functions with different
 liveness rules is a trap: a missing line then means "this particular function"
 rather than "the kernel stopped". Put the guard in the lowest layer
 (`con_printf`) so every caller inherits it.
+
+## Narrowing a silent stop
+
+**Eliminate by data-structure state, not by intuition.** `OSMetaClass::postModLoad()`
+does two passes over the stalled class array; the duplicate check in pass 1 calls
+`sAllClassesDict->getObject(...)`, and `sAllClassesDict` is only populated in
+pass 2. So during pass 1 the lookup is a lookup in an *empty* dictionary: it
+cannot block, cannot allocate, cannot log. Reading the code around the call site
+was not enough to see that -- reading the two loops together was. When a
+candidate "obviously can hang", check whether it has anything to do at all.
+
+**The only loop that can vanish silently is one that neither allocates nor
+prints.** Every earlier stop in this bring-up left a breadcrumb, because
+`early_random()` fires from `zalloc` and the trace calls print. A loop that
+walks a linked list with `while ((p = p->next)) depth++;` does neither, so a
+cycle in the list is indistinguishable from a dead CPU -- except that the pinned
+row stops on one index. Bound such loops and print the step counter on the pinned
+row; then the depth itself measures the cycle.
+
+**A class count is not a constructor count.** 98 `__mod_init_func` entries and
+`sStalled->count > 166` are both correct: constructors are per translation unit,
+and one `.cpp` usually registers several `gMetaClass` objects. Comparing the two
+numbers as if they should match costs a round.
+
+## Patch placement, third variant
+
+Inserting after `finish:` and before a block comment put the probe *inside* the
+comment (`/* Don't call logError() ... */`), where it compiles cleanly and never
+runs. Two builds earlier the same helper put a probe inside a comment's first
+line and broke the file. Both are the same mistake: the anchor was a comment,
+not code. Anchor on a statement that survives preprocessing, and after applying a
+patch, `grep` the new string in the source to confirm it is not commented out.
