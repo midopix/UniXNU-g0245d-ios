@@ -587,3 +587,21 @@ topology. On a bring-up kernel with the boot CPU only but a stale
 output -- the same silent signature as the prelink and NULL-table faults.
 Skipping the consumer gets the boot moving, but the real fix is to correct
 where `max_cpus` comes from before any CPU-hotplug path uses it.
+
+## The next trace is not necessarily the next function
+
+After `vfsinit()` the panel showed no further stage name, so it was tempting
+to blame `vfsinit()` itself. But between that call and the next labelled
+stage there is an entire `#if DEVELOPMENT || DEBUG` block of native probes
+(APFS, graphics, iogpu, ...). A "stop after line X" only localises the failure
+to everything between X and the next line of output, which can include many
+untraced calls. Bracket the whole gap, not just the obvious callee.
+
+## A passing stage rules out a whole family
+
+`bsd calling kmem_suballoc` appeared on the v249 panel, which proves
+`kmem_alloc(kernel_map, ...)` works in general. That retroactively explains
+the earlier `cpu_stack_alloc()` stop as something specific to its flags or
+its lock window, rather than a broken allocator. Keep earlier conclusions provisional: later
+breadcrumbs frequently tell you which of two explanations was right without
+another experiment.
