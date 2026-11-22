@@ -27,8 +27,14 @@ FILES = [
     'osfmk/arm/rtclock.c',
     'osfmk/arm64/arm_vm_init.c',
     'osfmk/arm/machine_routines.c',
+    'osfmk/arm64/machine_routines.c',
     'pexpert/arm/pe_init.c',
+    'osfmk/prng/prng_random.c',
+    'osfmk/kern/startup.c',
 ]
+
+# v229: probes past row 1900 have no room for a band, so they are text only.
+TRACE_PAT = re.compile(r'g0245d_tracev?\s*\(\s*"([^"]*)"')
 
 # Probes whose colour is a runtime ternary cannot be resolved statically.
 # Keyed by row, value = (normal branch rgb, fallback branch rgb, what decides).
@@ -87,6 +93,23 @@ def collect(root):
     return found
 
 
+def collect_traces(root):
+    """v229: text-only checkpoints, in source order."""
+    out = []
+    for rel in FILES:
+        p = Path(root) / rel
+        if not p.exists():
+            continue
+        for lineno, line in enumerate(p.read_text(errors='replace').split('\n'), 1):
+            if line.lstrip().startswith('*') or line.lstrip().startswith('/*'):
+                continue
+            m = TRACE_PAT.search(line)
+            if m:
+                out.append({'label': m.group(1).strip(),
+                            'source': '%s:%d' % (rel, lineno)})
+    return out
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('tree')
@@ -125,6 +148,7 @@ def main():
         'mapping': 'panel line = 1919 - row; top of screen = largest row',
         'color_note': 'rgb here is what the panel shows: byte0=G, byte1=R, byte2=B',
         'checkpoints': rows,
+        'traces': collect_traces(a.tree),
     }
     text = json.dumps(doc, indent=2, ensure_ascii=False)
     if a.out:
