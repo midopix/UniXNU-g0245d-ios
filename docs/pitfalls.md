@@ -209,3 +209,26 @@ which `#if` it landed in before doubting the linker.
 that prints the *index* of the constructor it is about to call can be turned
 into a file name offline (`scripts/structor_map.py`). 98 entries here: 96 in
 `__DATA_CONST`, then `_last_kernel_constructor`, then `bootstrap.cpp`.
+
+## Constructors and section walks
+
+**`_last_kernel_constructor` is a label, not a function.** It lives in
+`__LASTDATA_CONST,__mod_init_func` and its address lands *inside*
+`___llvm_profile_set_timestamp`, so `(*structor)()` on it executes a fragment of
+profiling code that can return, or can store through whatever happens to be in
+`x0`. Never read it as "a constructor that succeeded" — the machine reached the
+next entry *despite* it, not because of it.
+
+**Three `structors section` lines in one boot are correct.** The kernel has three
+segments carrying `__mod_init_func`: `__DATA_CONST` (96 entries),
+`__LASTDATA_CONST` (1) and `__KLDDATA` (1) — 98 in total, indices 0..97.
+`OSRuntimeCallStructorsInSection()` prints once per segment it actually enters,
+and `break`s after the first matching section inside the segment, so the count of
+those lines is the count of segments, not a duplicated instrumentation.
+
+**A four-instruction constructor cannot hang.** `__GLOBAL__sub_I_bootstrap.cpp`
+is two `adr` + two `str` + `ret`: clang proved `this == &sBootstrapObject`, so the
+`panic()` guard in `KLDBootstrap::KLDBootstrap()` is dead code and never emitted.
+When the probe row names the *last* entry and the log stops there, the stop is
+after the call, not inside it — bracket the call and the statements that follow
+before rewriting the constructor.
