@@ -496,3 +496,30 @@ panel answer; rewriting the console's framebuffer base beforehand would have
 been work for a problem that did not exist. The same applies to `spllo()`:
 enabling interrupts did not kill this bring-up either, so both fears were
 removed by one photograph instead of two preemptive patches.
+
+## Disassemble before blaming the feature
+
+`machine_lockdown()` on arm64 *looks* like an Apple-security minefield: KTRR,
+CTRR, Watchtower, a PPL lockdown and an HMAC invalidation callback. The
+compiled function is four instructions: one call to `arm_vm_prot_finalize`, one
+optional indirect callback, and `lockdown_done = 1`. Every Apple-specific
+block was compiled out. Reading the source alone would have sent us after a
+register write that does not exist in the image. A one-screen `llvm-objdump`
+settles which of the `#if` branches are real.
+
+## A stack switch and the free of the old stack are one operation
+
+`arm_vm_prot_finalize()` switches SP_EL1 to a fresh exception stack and then
+frees the old BOOTDATA pages. Disabling only the switch leaves the kernel
+running on pages it has just given back to the VM; disabling only the free
+leaks a few pages but is harmless for bring-up. Treat the two as one edit,
+keep both under the same `#if 0`, and restore them as a pair.
+
+## Old probes can light up again
+
+After `OSKextRemoveKextBootstrap()` the panel suddenly showed `v234/v235`
+constructor traces and a fresh `28/98` on the constructor probe row. That is
+not a rewind: tearing down the bootstrap segments runs the C++ constructor
+walk a second time, and the instrumentation from twenty builds earlier is
+still there. Keep instrumentation idempotent and version-tagged -- old labels
+become free evidence when an unrelated late-boot path re-enters the function.
