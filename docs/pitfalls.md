@@ -248,3 +248,39 @@ distinguish "the walk finished" from "the console stopped advancing". A row that
 says `97/98 s72` can: if the sequence is still 72 while the index is 97, the
 console is frozen and the walk is fine; if it says `s87`, the screen is stale and
 the device rebooted. Print the counter that the other channel increments.
+
+## Instrumentation placement
+
+**When only the first of two adjacent traces appears, the stop is between
+them.** v236 printed `v234 structors done` and then nothing, while the very
+next statement was `g0245d_trace_u("v236 walk done i", ...)`. That reduces the
+search to one call, but it does not say which side of it died. Split them: put
+a plain, known-good trace first and leave the suspect one last as a canary.
+Getting the same treatment for free: every pairing added to `postModLoad()`
+(`enter`/`done`, `dict enter`/`dict ok`, per-class counter on a pinned row) is
+worth more than one clever guess about where a kernel hangs.
+
+**A segment walk is verifiable offline.** `nextsegfromheader()` iterates
+`LC_SEGMENT_64` load commands in order, so printing one line per segment and
+then comparing the list with the Mach-O's own load commands proves whether the
+walk finished or stopped early. Here the panel showed 12 segment lines and the
+header has 18 segments, ordered `__TEXT, __DATA_CONST, __TEXT_EXEC, __KLD,
+__LASTDATA_CONST, __LAST, __KLDDATA, __DATA, __BOOTDATA, __PRELINK_TEXT, ...,
+__LINKINFO, __LINKEDIT`, so the visible run was exactly segments 6..17, i.e.
+the last one was reached. Without that checksum "twelve lines" looks like a
+partial walk.
+
+**Anchor a patch on code, never on the first line of a block comment.**
+Inserting a statement after `/* Scan the header for all destructor sections, in
+any` produced `expected ';' after expression` hundreds of lines away: the
+insertion landed between the comment's opening line and its continuation, so
+`/* g0245d v237: ... */` became part of the comment and the `for` loop after it
+lost its opening brace context. Anchor on the loop head or on a closing brace.
+
+**A `%u`-taking trace needs the same re-arm path as the plain one.** v236 gave
+`g0245d_trace()` a "console was disarmed, take it back" guard but left
+`g0245d_trace_u()` calling `g0245d_con_printf()` directly, which returns
+silently when the ready flag is clear. Two log functions with different
+liveness rules is a trap: a missing line then means "this particular function"
+rather than "the kernel stopped". Put the guard in the lowest layer
+(`con_printf`) so every caller inherits it.
