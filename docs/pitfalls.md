@@ -421,3 +421,26 @@ arg }` and only logs the subsystem, so a stop inside a subsystem of forty
 routines is anonymous. Logging `cur->func` before each call turns every entry
 into an address, and `llvm-nm -n kernel.macho` turns the address back into a
 file and a symbol -- no need for the table to carry strings.
+
+## The startup table on disk is not in boot order
+
+`__init_entry_set` holds 3917 `{subsystem, rank, func, arg}` records in **link
+order**; the boot order only exists after `bootstrap_init()` calls
+`qsort(startup_entries, n, ..., startup_entry_cmp)`. Reading the section and
+assuming index order gives nonsense (consecutive records had subsystems
+`7,1,7,3,16,7,3,…`). To turn a boot index into a name, replay the sort:
+parse the section, compile the kernel's own `bsd/kern/qsort.c` on the host
+(rename `qsort` with `-Dqsort=bsd_qsort`, drop `sys/kpi_private.h` and
+`__private_extern__`), and run the same comparator. `scripts/startup_order.py`
+does exactly that; four consecutive addresses from one photograph then matched
+the replay exactly, which is what makes the fifth entry trustworthy.
+
+## Never read the last line of a dying console
+
+The final line of a console that dies mid-flush survives as isolated horizontal
+strokes: some 64-byte cache lines were written back, the rest were lost. An
+address read from such a line looked like `...ae57?` when the truth was
+`...aa978`. Two rules follow. First, judge by the *sequence number* plus an
+offline table, not by the fuzzy last line. Second, keep the important value
+short: `su 8` stays legible where a 38-character address line does not, and
+duplicate it on a pinned row that is redrawn whole.
