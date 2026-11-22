@@ -12,3 +12,11 @@ CONFIG_XNU_CRYPTO_BOOTSTRAP="prelinked"
 # Secondary CPU bring-up: enable after the GIC 3-cell specifier check passes.
 # CONFIG_XNU_ARMCPU_SECONDARY is not set
 # CONFIG_XNU_BUILD_ARCHIVES is not set    (enable with the first native driver)
+# g0245d v289/v290: mockfs memory root (offline executable-root fixture).
+# Requires XNU_ARMCPU=y + XNU_SOURCE_PTHREAD=y (both set above).
+# Drives archive-07-build-mockfs-fixture.py -> libmockfs_fixture.a
+# (-Wl,-force_load into the kernel) and -DMOCKFS=1 on vfs_conf.o.
+# The device defconfig applies LAST, overriding os:configs/ios.config's
+# "# CONFIG_XNU_SOURCE_MOCKFS is not set".  Verify the generated work/.config
+# ends with CONFIG_XNU_SOURCE_MOCKFS=y after "unixnu defconfig".
+CONFIG_XNU_SOURCE_MOCKFS=y
