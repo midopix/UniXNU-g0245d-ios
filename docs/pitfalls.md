@@ -192,3 +192,20 @@ a lost line.
 is `early_random() & mask` on arm64, so every zone allocation bumps it. A single
 number that stops climbing bounds how many allocations happened after the last
 print; it does not mean the CPU is spinning.
+
+## Build / instrumentation
+
+**An `extern` declaration placed next to a `#include` may be inside a
+conditionally compiled block.** Adding `extern "C" void g0245d_trace(...)` right
+after `#include <ptrauth.h>` in `libkern/c++/OSRuntime.cpp` produced eleven
+`use of undeclared identifier` errors: that include lives inside
+`#if defined(HAS_APPLE_PAC)`, and this target builds without PAC, so the whole
+block — declarations included — was compiled out. Put instrumentation
+declarations above the conditional, and when a declaration "disappears", check
+which `#if` it landed in before doubting the linker.
+
+**A stripped kernel still names its own static constructors.** `llvm-nm` on
+`kernel.macho` is enough to resolve every entry of `__mod_init_func`, so a probe
+that prints the *index* of the constructor it is about to call can be turned
+into a file name offline (`scripts/structor_map.py`). 98 entries here: 96 in
+`__DATA_CONST`, then `_last_kernel_constructor`, then `bootstrap.cpp`.
