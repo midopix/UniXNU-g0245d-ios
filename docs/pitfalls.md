@@ -171,3 +171,24 @@ is why the local packer never noticed. The value must be `shim length + FD_SIZE`
 use a label difference `(_Payload - _Head)`, because an absolute `_Payload`
 reference needs a relocation that `llvm-objcopy -O binary` cannot apply.
 Patch: `uefi-g0245d/patches/mu/0002-bootshim-image-size.patch`.
+
+## Framebuffer console
+
+**A linear ring shown linearly is not a terminal.** `g0245d_con_putc()` wrapped its
+cursor at `g0245d_con_nscroll` and overwrote rows in place, so once the ring turned
+over the panel held the newest lines on top and stale lines below them. A boot log
+then looks like two log fragments stitched together: v232's photo reads `42..63`,
+then `32 sched_init .. 41 coalitions_init` underneath. Rotating the glyphs inside a
+row (v231's 300 px fix) cannot repair that — it is an ordering bug, not a geometry
+bug. Clear the ring when the cursor wraps, or scroll the display window; do not
+blame the panel.
+
+**Read the sequence number, never the screen order.** Every `g0245d_trace()` line
+starts with a monotonic counter precisely so a wrapped ring stays readable. If the
+numbers jump backwards, the ring turned over — it is not a second counter and not
+a lost line.
+
+**`early_random calls 0xNNN` is a heartbeat, not a loop.** `zalloc_random_mask64()`
+is `early_random() & mask` on arm64, so every zone allocation bumps it. A single
+number that stops climbing bounds how many allocations happened after the last
+print; it does not mean the CPU is spinning.
