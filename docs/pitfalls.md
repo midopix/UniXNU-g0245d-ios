@@ -523,3 +523,25 @@ not a rewind: tearing down the bootstrap segments runs the C++ constructor
 walk a second time, and the instrumentation from twenty builds earlier is
 still there. Keep instrumentation idempotent and version-tagged -- old labels
 become free evidence when an unrelated late-boot path re-enters the function.
+
+## Skip what the skipped step needed
+
+v246 removed the boot stack switch; its very next call, `cpu_stack_alloc()`,
+then became the stop. The two stacks that call allocates exist *only* for the
+switch that was just disabled. When removing a mechanism, follow its
+dependencies one step in both directions -- the setup right after the removed
+step is often the next thing to hang, and often equally unnecessary.
+
+Keep the removed call verbatim under `#if 0` with a comment naming the
+mechanism it served. Three builds later it is still obvious why it is off and
+what has to be restored together.
+
+## One small change moves the stop, and that is progress
+
+Each version from v242 to v247 removed exactly one suspect and the panel
+moved a few lines further: pgz_init, kmem_crypto_init, trust cache, the LOCKDOWN
+routines, machine_lockdown's stack switch, cpu_stack_alloc. None of those was
+the "real bug" in the sense of a fix to upstream code -- they are all pieces
+of an Apple-platform kernel that have no meaning on this SoC. The useful unit
+of work here is "prove one more stage is not the wall", not "find the single
+root cause".
