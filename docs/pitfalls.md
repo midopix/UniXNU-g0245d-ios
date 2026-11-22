@@ -316,3 +316,34 @@ runs. Two builds earlier the same helper put a probe inside a comment's first
 line and broke the file. Both are the same mistake: the anchor was a comment,
 not code. Anchor on a statement that survives preprocessing, and after applying a
 patch, `grep` the new string in the source to confirm it is not commented out.
+
+## Prelinked symbols that point nowhere
+
+**An `A` symbol can name an address that no segment covers.** `llvm-nm` printed
+`__ZN16IOAESAccelerator10gMetaClassE` with type `A` at `0xfffffff006ae52d0`,
+while this kernel's `__TEXT` starts at `0xfffffff007004000` and its
+`__PRELINK_TEXT` has `vmsize = 0`. The symbol is a leftover from a prelinked
+kext that was never linked into the image (the build skips prelink), so the
+address is real to the linker and unmapped to the MMU. Dereferencing it is a
+data abort, and with no exception vectors installed that is indistinguishable
+from a hang: no output at all.
+
+**Check the three things in this order** when a pointer dereference kills the
+machine silently: the literal that produced it
+(`llvm-objdump --disassemble` shows `ldr x2, <pool>` and the pool entry is the
+8 bytes at that address), the symbol at its value (`llvm-nm -n` and take the
+nearest symbol *at or below*), and whether that value falls inside any
+`LC_SEGMENT_64` range from the Mach-O header. Two of the three are not enough:
+a plausible-looking `0xfffffff0...` pointer passes every hand-written range test.
+
+**Deriving a superclass pointer is not worth a hang.** `sDeepestClass` exists
+only to size arrays in `applyToInstances()`; the walk that computes it
+(`while ((p = p->superClassLink)) depth++`) touches every link in the chain, so
+one bad link kills the boot for a statistic nobody reads. When instrumenting a
+bring-up, ask what the value is *used for* before walking to compute it.
+
+**The last element of a linked set is a fine suspect.** Here index 166 of 167
+was the only class descending from a prelinked base class, which is exactly why
+the loop survived 166 iterations and died on the last one. "It got through 166
+elements, so the data is fine" is the wrong inference -- element order is link
+order, and the pathological one is wherever its object file happened to land.
