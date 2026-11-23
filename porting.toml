@@ -2,15 +2,28 @@ schema_version = 1
 
 [device]
 name = "g0245d"
-soc = "MSM8996"
-os_profile = "ipados-17.7.11-21H461"
-summary = "Gree G0245D (格力手机·色界) port: Snapdragon 820, 4 GB LPDDR4, 64 GB UFS 2.0, Adreno 530, MDP5. Hardware inventory complete from the stock QFIL package (board.dtb, boot.img, rawprogram XML, firmware blobs); repository bootstrap done; no host build or device observation yet."
+soc = "msm8996"
+os_profile = "ios-16.5-20F66"
+summary = "Gree G0245D (格力手机·色界) iOS 16.5 (20F66) XNU bring-up on MSM8996. The LK/aboot BootShim contract was reverse-engineered from emmc_appsboot.mbn, a stage-1 boot image packs and flashes end-to-end, and on-device framebuffer trace probes carried the VFS root-mount chain through VFS_ROOT, namei, mount_common and devfs_mount (v298-v306). Current blocker: flashed boot images report OK but the device keeps executing the v304 kernel, so the boot layer must be checked before further kernel work."
 
 [[area]]
 id = "configuration"
-status = "in-progress"
-components = ["ArmDTPlatform", "ArmCpu", "SoftwareAES", "XnuPrelink", "DarwinBoot"]
-paths = ["board.toml", "feeds.toml", "configs/**", "dts/**", ".gitignore", "README.md"]
+status = "implemented"
+components = [
+  "ArmDTPlatform",
+  "ArmCpu",
+  "SoftwareAES",
+  "XnuPrelink",
+  "DarwinBoot",
+]
+paths = [
+  "board.toml",
+  "feeds.toml",
+  "configs/**",
+  "dts/**",
+  ".gitignore",
+  "README.md",
+]
 inputs = [
   "Stock QFIL package G0245D_Gree_user_QFIL_images.zip (2.6 GB) extracted: 573 files, incl. vmlinux 193 MB with symbols, boot.img, xbl.elf, M8996AAAAAAAAQ1234.elf, prog_ufs_firehose_8996_ddr.elf, NON-HLOS.bin 83 MB, splash.img, rawprogram_unsparse*.xml, gpt_main*.bin.",
   "Mainline Linux msm8996.dtsi supplies CPU/GIC/UFS/GPU/MDP5/SMMU resources (pinned in soc.toml).",
@@ -42,22 +55,31 @@ next_action = [
   "Pin the SoC commit; run scripts/extract-files.py output through the Mu-Silicium platform draft.",
 ]
 evidence = [
-  "firmware/extracted/G0245D_Gree_user_QFIL_images/board.dtb (341047 bytes) -> board.dts (16530 lines).",
-  "README.md, AGENTS.md, LICENSE, scripts/, patches/xnu/series, REA-WORKFLOW.md added.",
+  { kind = "source", reference = "board.toml", result = "firmware/extracted/G0245D_Gree_user_QFIL_images/board.dtb (341047 bytes) -> board.dts (16530 lines)." },
+  { kind = "source", reference = "configs/g0245d_defconfig", result = "README.md, AGENTS.md, LICENSE, scripts/, patches/xnu/series, REA-WORKFLOW.md added." },
 ]
 
 [[area]]
 id = "firmware"
-status = "in-progress"
+status = "implemented"
 components = []
-paths = ["proprietary-files.txt", "scripts/extract-files.py", "scripts/extract-qfil.sh"]
+paths = [
+  "proprietary-files.txt",
+  "scripts/extract-files.py",
+  "scripts/extract-qfil.sh",
+]
 inputs = [
   "QFIL images classified by scripts/extract-files.py (40 files, see proprietary-files.txt + firmware/g0245d-firmware.json): xbl.elf, M8996AAAAAAAAQ1234.elf (+ _SENSOR variant), RPM_AAAAANAAR.elf, prog_ufs_firehose_8996_ddr.elf, NON-HLOS.bin 83 MB, adspso.bin 16 MB, BTFM.bin (BT firmware), G0245D_fs_image_golden_copy_srdsds_mbnautosel_asdiv_1031.img (UFS golden copy), splash.img, boot.img, board.dtb, rawprogram/gpt XMLs, qca_cld_wlan.ko.",
   "boot.img (Android v0): kernel_addr 0x80008000, ramdisk_addr 0x81000000, tags_addr 0x80000100, page_size 4096, cmdline at offset 64.",
   "Board identity: msm-id 0xf6/0x30000 (MSM 8996 v3.0), pmic-id 0x20009/0x2000a, board-id 0x03/0x00.",
 ]
-configuration = ["Record the Mu-Silicium msm8996 platform configuration: [uefi_fd] base/size, boot image parameters, BootShim flags."]
-procedure = ["Follow the firmware stage of the porting guide with scripts/extract-files.py; record the actual commands.", "readelf/strings/python header parsing on xbl.elf, M8996AAAAAAAAQ1234.elf, emmc_appsboot.mbn, splash.img (pre-Ghidra layout pass, 2026-10-25)."]
+configuration = [
+  "Record the Mu-Silicium msm8996 platform configuration: [uefi_fd] base/size, boot image parameters, BootShim flags.",
+]
+procedure = [
+  "Follow the firmware stage of the porting guide with scripts/extract-files.py; record the actual commands.",
+  "readelf/strings/python header parsing on xbl.elf, M8996AAAAAAAAQ1234.elf, emmc_appsboot.mbn, splash.img (pre-Ghidra layout pass, 2026-10-25).",
+]
 findings = [
   "Partition map from rawprogram_unsparse*.xml (4096 B sectors): rpm@s6, xbl@s6(xbl.elf), tz@s262, hyp@s1286, fsg@s1542, sec@s2054, pmic@s2058, modem@s2314+24320s (NON-HLOS.bin, 95 MiB), dsp@s26634 (adspso.bin), mdtp@s30986, boot@s39690+16384s, misc@s73736, devcfg@s74120, aboot@s39178+256s (emmc_appsboot.mbn = the LK-based Android Bootloader), persist@s8+1173s, cache@s8200, system@s56074, userdata@s74312, splash@s859852+8356s, lksecapp@s859147, keymaster@s859211, cmnlib@s859467, cmnlib64@s859595, bluetooth@s858891 (BTFM.bin), devinfo@s858890, weakchg@s868720, weakbat@s871792.",
   "Boot chain: PBL -> xbl.elf (XBL core @0x6208000, entry 0x6213de0; DDR training RWE @0x80200000/0xf0000; IMEM LOADs @0x21e000/0x207000/0x217800) -> emmc_appsboot.mbn (LK + aboot, aboot partition) -> boot.img kernel.",
@@ -67,40 +89,73 @@ findings = [
   "vmlinux (Linux 3.18.20-perf, AArch64 EXEC, entry 0xffffffc000080000) symbol pass: cnss_pci.c (PCIe WLAN), ufs_qcom phy init/vreg helpers, mdss_mdp.c, kgsl (Adreno), synaptics_dsx_i2c + synaptics_rmi4_i2c, fts_ts (both touch drivers compiled; DTS selects synaptics@20), panel driver candidates nt35596/tm23_g..tm30_g compiled but DTS selects ft8716.",
   "boot.img kernel slot DTB table (2026-10-25): after the gzip stream (8399161 B, decompressing to a 26375904 B ARM64 Image with text_offset 0x80000 (real kernel text at 0x80008000+0x80000=0x80088000, clear of the appended-DTB region 0x80000100-0x800536F7), image_size 0x1b88000, magic 'ARMd') follow 90 concatenated FDTs (330177-349324 B each, 30944820 B total, no table header). The 90 trees are the Qualcomm MSM8996/APQ8096 reference-board family (FLUID, CDP, MTP, LiQUID, DragonBoard, ... variants); FDT#0 is 'MSM 8996 v3.0 FLUID' (msm-id 0xf6/0x30000, board-id 0x03/0x00, pmic-id 0x20009/0x2000a/0/0) and is byte-identical to the standalone board.dtb. aboot strings confirm the matcher: 'ERROR: Couldn't find the suitable DTB!', 'qcom,pmic-id(%d) or qcom,board-id(%d) in device tree is not a multiple of (%d %d)', 'Failed to move/resize dtb buffer', 'Device tree addresses overlap with aboot addresses.'.",
   "xbl.elf XBL/UEFI memory map (string table, 32 entries; embedded __FILE__ path QcomPkg/XBLCore/UefiPlatCfg.c) resolves the firmware DDR carveouts: HLOS 0 0x80100000-0x80200000, XBL's own UEFI FD 0x80200000-0x80300000, Display Reserved 0x80400000-0x80C00000 (8 MB, XBL early framebuffer), HLOS 2 0x84000000-0x85800000, HYP 0x85800000-0x85E00000, SMEM 0x86000000-0x86200000, TZ 0x86400000-0x86600000, Stargate 0x87400000-0x88800000, PIL_REGION 0x88800000-0x90F00000 (135 MB = modem/ADSP/venus/MBA/wlan). No separate fixed GPU (Adreno) carveout exists; GPU memory is carved at runtime via KGSL/PIL inside PIL_REGION - the 'GPU/venus/mba carveout' open item is closed.",
+  "The v305/v306 \"flash OK but old kernel\" symptom points at the boot layer (backup/bootbak partition, cached boot, or a warm path that never reloads the kernel) rather than a kernel defect; see the packaging and diagnostics areas.",
 ]
-completion = ["Firmware image builds, enters UniXNU, publishes the framebuffer and preserves the documented reservations."]
-limits = ["Mu-Silicium msm8996 platform package does not exist yet; port from the closest MSM8996 UEFI reference.", "Ghidra must load emmc_appsboot.mbn as raw binary: base 0x91600000, image = file[0x8000:] (Qualcomm MBN ELF32 format, not a corrupt ELF64) — per-Ghidra BootShim contract now captured in the packaging area.", "aboot boot_verifier is non-fatal on a locked retail device (unsigned boot.img still boots); unlock skips verification. QFIL/E DL remains the flashing/bypass path if the boot partition is protected."]
-next_action = ["aboot BootShim contract confirmed in Ghidra (see packaging area). Draft the msm8996 Mu-Silicium UEFI platform package and build BootShim stage 1. XBL memory map resolved (32-entry table extracted; FD_BASE=0x92000000 confirmed free); framebuffer GOP handoff base = cont_splash_mem@0x83401000 (1080x1920 RGB888)."]
+completion = [
+  "Firmware image builds, enters UniXNU, publishes the framebuffer and preserves the documented reservations.",
+]
+limits = [
+  "Mu-Silicium msm8996 platform package does not exist yet; port from the closest MSM8996 UEFI reference.",
+  "Ghidra must load emmc_appsboot.mbn as raw binary: base 0x91600000, image = file[0x8000:] (Qualcomm MBN ELF32 format, not a corrupt ELF64) — per-Ghidra BootShim contract now captured in the packaging area.",
+  "aboot boot_verifier is non-fatal on a locked retail device (unsigned boot.img still boots); unlock skips verification. QFIL/E DL remains the flashing/bypass path if the boot partition is protected.",
+]
+next_action = [
+  "aboot BootShim contract confirmed in Ghidra (see packaging area). Draft the msm8996 Mu-Silicium UEFI platform package and build BootShim stage 1. XBL memory map resolved (32-entry table extracted; FD_BASE=0x92000000 confirmed free); framebuffer GOP handoff base = cont_splash_mem@0x83401000 (1080x1920 RGB888).",
+]
 evidence = [
-  "readelf -h/-l/-S on xbl.elf (17 program headers, no sections) and M8996AAAAAAAAQ1234.elf (8 LOAD segments, entry 0xb0100000).",
-  "python struct parse of emmc_appsboot.mbn header + ANDROID! @0x7e168 context; strings grep for boot_verifier/VERIFIED_BOOT_SIG/DTB.",
-  "splash.img header decode: 'SPLASH!!' magic, w=1080, h=1920, 3 frames x RGB888 = 18663936 B total.",
-  "readelf -sW vmlinux: fts_ts/synaptics_dsx_i2c/cnss_pci/ufs_qcom/mdss_mdp/kgsl symbols; strings: nt35596, tm23_g..tm30_g panel names.",
-  "rawprogram_unsparse*.xml full label->filename map (boot/aboot/modem/xbl/splash/...).",
-  "xbl.elf strings -t x: 32-entry XBL/UEFI memory map table (QcomPkg/XBLCore/UefiPlatCfg.c); key DDR carveouts HLOS0 0x80100000, UEFI FD 0x80200000, Display Reserved 0x80400000/8MB, HLOS2 0x84000000, HYP 0x85800000, SMEM 0x86000000, TZ 0x86400000, Stargate 0x87400000, PIL_REGION 0x88800000-0x90F00000 (135 MB).",
+  { kind = "source", reference = "proprietary-files.txt", result = "readelf -h/-l/-S on xbl.elf (17 program headers, no sections) and M8996AAAAAAAAQ1234.elf (8 LOAD segments, entry 0xb0100000)." },
+  { kind = "source", reference = "scripts/extract-files.py", result = "python struct parse of emmc_appsboot.mbn header + ANDROID! @0x7e168 context; strings grep for boot_verifier/VERIFIED_BOOT_SIG/DTB." },
+  { kind = "source", reference = "scripts/extract-qfil.sh", result = "splash.img header decode: 'SPLASH!!' magic, w=1080, h=1920, 3 frames x RGB888 = 18663936 B total." },
+  { kind = "source", reference = "README.md", result = "readelf -sW vmlinux: fts_ts/synaptics_dsx_i2c/cnss_pci/ufs_qcom/mdss_mdp/kgsl symbols; strings: nt35596, tm23_g..tm30_g panel names." },
+  { kind = "source", reference = "proprietary-files.txt", result = "rawprogram_unsparse*.xml full label->filename map (boot/aboot/modem/xbl/splash/...)." },
+  { kind = "source", reference = "scripts/extract-files.py", result = "xbl.elf strings -t x: 32-entry XBL/UEFI memory map table (QcomPkg/XBLCore/UefiPlatCfg.c); key DDR carveouts HLOS0 0x80100000, UEFI FD 0x80200000, Display Reserved 0x80400000/8MB, HLOS2 0x84000000, HYP 0x85800000, SMEM 0x86000000, TZ 0x86400000, Stargate 0x87400000, PIL_REGION 0x88800000-0x90F00000 (135 MB)." },
 ]
 
 [[area]]
 id = "cpu"
 status = "planned"
-components = ["ArmCpu"]
-paths = ["dts/g0245d.dts", "configs/g0245d_defconfig"]
-inputs = ["4x Kryo 280 (Cortex-A72 class), MPIDR 0x0/0x1/0x100/0x101, PSCI smc, GICv3 3-cell specifiers, 19.2 MHz timebase."]
-configuration = ["cpu0 enabled in stage 1; cpu1..cpu3 disabled until the GIC 3-cell check passes."]
-procedure = ["Build with cpu0-only; enable secondaries one at a time; verify IPI/timer per core."]
-findings = ["Collect the per-CPU entry observation and the GIC specifier behavior."]
-completion = ["Every enabled CPU reaches its entry checkpoint and timer/IPI handling works on each enabled CPU."]
-limits = ["GICv3 3-cell specifier support in ArmCpu unverified."]
-next_action = ["Run scripts/check-gic-cells.sh against the ADT converter once a host build exists."]
+components = [
+  "ArmCpu",
+]
+paths = [
+  "dts/g0245d.dts",
+  "configs/g0245d_defconfig",
+]
+inputs = [
+  "4x Kryo 280 (Cortex-A72 class), MPIDR 0x0/0x1/0x100/0x101, PSCI smc, GICv3 3-cell specifiers, 19.2 MHz timebase.",
+]
+configuration = [
+  "cpu0 enabled in stage 1; cpu1..cpu3 disabled until the GIC 3-cell check passes.",
+]
+procedure = [
+  "Build with cpu0-only; enable secondaries one at a time; verify IPI/timer per core.",
+]
+findings = [
+  "Collect the per-CPU entry observation and the GIC specifier behavior.",
+]
+completion = [
+  "Every enabled CPU reaches its entry checkpoint and timer/IPI handling works on each enabled CPU.",
+]
+limits = [
+  "GICv3 3-cell specifier support in ArmCpu unverified.",
+]
+next_action = [
+  "Run scripts/check-gic-cells.sh against the ADT converter once a host build exists.",
+]
 evidence = [
-  "board.dts cpu nodes: compatible 'arm,cortex-a72','qcom,kryo'; reg <0 0x0>/<0 0x1>/<0 0x100>/<0 0x101>; enable-method 'qcom,psci'.",
+  { kind = "source", reference = "dts/g0245d.dts", result = "board.dts cpu nodes: compatible 'arm,cortex-a72','qcom,kryo'; reg <0 0x0>/<0 0x1>/<0 0x100>/<0 0x101>; enable-method 'qcom,psci'." },
 ]
 
 [[area]]
 id = "memory"
-status = "in-progress"
-components = ["ArmSmmu4K"]
-paths = ["dts/msm8996.dtsi", "dts/g0245d.dts"]
+status = "implemented"
+components = [
+  "ArmSmmu4K",
+]
+paths = [
+  "dts/msm8996.dtsi",
+  "dts/g0245d.dts",
+]
 inputs = [
   "DRAM 4 GB at 0x80000000; stock reserved-memory from board.dts: removed_regions@85800000 0x3000000 (48 MB), modem_region@88800000 0x6200000 (98 MB), peripheral_region@8ea00000 0x2b00000 (43 MB, slpi), dfps_data_mem@83400000 0x1000, cont_splash_mem@83401000 0x23ff000 (36 MB), cont_splash_mem_hdmi@b1c00000 0x23ff000; shared pools: adsp 4 MB, qseecom 0x1400000 (20 MB), secure 0x5c00000 (92 MB).",
   "xbl.elf program headers (17 segments): XBL/TZ core resident at 0x6208000-0x66b4400 (low DDR, below the DRAM base) and 0x85e00000-0x85ec9a08 (inside removed_regions); DDR training scratch 0x80200000-0x81100000 (transient); IMEM 0x207000-0x219970.",
@@ -108,171 +163,297 @@ inputs = [
   "BootShim handoff: kernel image window 0x80008000-0x81c03570 (decompressed shim+FD + stock kernel BSS top); tags 0x80000100; boot header read scratch 0x8F6FF000 inside peripheral_region.",
   "smmu-v2 at 0xb40000 (adreno_smmu); GPU carveout to be read from the XBL memory map.",
 ]
-configuration = ["Board DTS carries the contiguous DRAM range; ADT memory-map placeholders come from the generator.", "UniXNU FD placement fixed: FD_BASE=0x92000000, FD_SIZE=0x300000, in the free window 0x916c4478-0xb1c00000 (about 508 MB) above the aboot image and below cont_splash_mem_hdmi; recorded as unixnu_fd_region in dts/g0245d.dts.", "Dynamic pools pinned at 0x178c00000-0x180000000 (116 MB from the top of 4 GB) so the layout matches the stock kernel carve."]
-procedure = ["Compare firmware RAM map, carveouts, framebuffer and payload allocations; record SMMU context ownership per DMA device."]
+configuration = [
+  "Board DTS carries the contiguous DRAM range; ADT memory-map placeholders come from the generator.",
+  "UniXNU FD placement fixed: FD_BASE=0x92000000, FD_SIZE=0x300000, in the free window 0x916c4478-0xb1c00000 (about 508 MB) above the aboot image and below cont_splash_mem_hdmi; recorded as unixnu_fd_region in dts/g0245d.dts.",
+  "Dynamic pools pinned at 0x178c00000-0x180000000 (116 MB from the top of 4 GB) so the layout matches the stock kernel carve.",
+]
+procedure = [
+  "Compare firmware RAM map, carveouts, framebuffer and payload allocations; record SMMU context ownership per DMA device.",
+]
 findings = [
   "Collect the first handoff-region observation from the UEFI memory map.",
   "Free-window derivation: every firmware-owned DDR consumer at BootShim entry is below 0x916c4478 (XBL/TZ 0x85e00000-0x85ec9a08, modem 0x88800000-0x8ea00000, peripheral 0x8ea00000-0x91500000, aboot 0x91600000-0x916c4478) or above 0xb1c00000 (hdmi splash 0xb1c00000-0xb3fff000). The dynamic pools are carved by the Linux kernel, which never runs, so they are free at handoff; UniXNU pins them at the top of RAM instead.",
   "XBL/UEFI memory map (xbl.elf string table, 32 entries; embedded __FILE__ path QcomPkg/XBLCore/UefiPlatCfg.c confirms it is the authoritative XBL memory map) resolves the firmware carveouts: HLOS 0 0x80100000-0x80200000, XBL's own UEFI FD 0x80200000-0x80300000, Display Reserved 0x80400000-0x80C00000 (8 MB, XBL early framebuffer, WRITE_THROUGH), HLOS 2 0x84000000-0x85800000, HYP 0x85800000-0x85E00000, SMEM 0x86000000-0x86200000, TZ_STAT 0x86200000-0x86300000, TAGS 0x86300000-0x86400000, TZ 0x86400000-0x86600000, Stargate (CPU DFD) 0x87400000-0x88800000, PIL_REGION 0x88800000-0x90F00000 (135 MB = modem/ADSP/venus/MBA/wlan). The XBL map has NO separate fixed GPU (Adreno) carveout — GPU memory is carved at runtime via KGSL/PIL inside PIL_REGION; the 'GPU/venus/mba carveout' open item is therefore closed (venus/MBA live inside PIL_REGION; GPU is dynamic).",
   "Free-window reconciliation against the XBL map: PIL_REGION ends at 0x90F00000 and aboot starts at 0x91600000, so the gap 0x90F00000-0x91600000 (~7 MB) plus 0x916c4478-0xb1c00000 are free at BootShim entry. FD_BASE=0x92000000 sits inside that upper free window (above aboot, below hdmi splash 0xb1c00000), confirmed consistent with the XBL memory map. cont_splash_mem@0x83401000 (36 MB, the GOP handoff framebuffer) lies inside the XBL-free band 0x80C00000-0x84000000 (between Display Reserved and HLOS 2) and is owned by the ABL/Linux, not XBL.",
 ]
-completion = ["All handoff regions are accounted for and each enabled DMA engine accesses its allocated range with the documented cache policy."]
-limits = ["GPU carveout is dynamic (no fixed region in the XBL map); if UniXNU's Adreno530 needs a static reserved range, derive it from KGSL/Linux board.dts at enablement time rather than the XBL map.", "The 0x92000000 FD window is confirmed clear of aboot's decompression target (kernel_addr 0x80008000, per Ghidra) and of every XBL carveout (PIL_REGION ends 0x90F00000, aboot 0x91600000-0x916c4478, hdmi splash 0xb1c00000)."]
-next_action = ["Capture the XBL/UEFI memory map from the extracted xbl.elf and reconcile against the DTS carveouts; verify the aboot decompression destination in Ghidra before locking FD_BASE."]
+completion = [
+  "All handoff regions are accounted for and each enabled DMA engine accesses its allocated range with the documented cache policy.",
+]
+limits = [
+  "GPU carveout is dynamic (no fixed region in the XBL map); if UniXNU's Adreno530 needs a static reserved range, derive it from KGSL/Linux board.dts at enablement time rather than the XBL map.",
+  "The 0x92000000 FD window is confirmed clear of aboot's decompression target (kernel_addr 0x80008000, per Ghidra) and of every XBL carveout (PIL_REGION ends 0x90F00000, aboot 0x91600000-0x916c4478, hdmi splash 0xb1c00000).",
+]
+next_action = [
+  "Capture the XBL/UEFI memory map from the extracted xbl.elf and reconcile against the DTS carveouts; verify the aboot decompression destination in Ghidra before locking FD_BASE.",
+]
 evidence = [
-  "board.dts reserved-memory node transcribed verbatim into porting.toml inputs.",
-  "xbl.elf: 17 program headers parsed; LOAD segments cover 0x6208000/0x625f000/0x626a000/0x6680000/0x6683000/0x66a2000 (low), 0x85e00000/0x85e80000/0x85eb0000/0x85ec0000 (high, inside removed_regions), 0x80200000 (DDR training 0xf0000), IMEM 0x21e000/0x207000/0x217800/0x219800.",
-  "emmc_appsboot.mbn MBN parse: entry 0x91600000, main segment file 0x8000..0xb907c -> 0x91600000..0x916b907c.",
-  "boot.img v0 header: kernel_addr 0x80008000 confirmed by vmlinux entry 0xffffffc000080000 (PHYS_OFFSET 0x80000000).",
+  { kind = "source", reference = "dts/g0245d.dts", result = "board.dts reserved-memory node transcribed verbatim into porting.toml inputs." },
+  { kind = "source", reference = "board.toml", result = "xbl.elf: 17 program headers parsed; LOAD segments cover 0x6208000/0x625f000/0x626a000/0x6680000/0x6683000/0x66a2000 (low), 0x85e00000/0x85e80000/0x85eb0000/0x85ec0000 (high, inside removed_regions), 0x80200000 (DDR training 0xf0000), IMEM 0x21e000/0x207000/0x217800/0x219800." },
+  { kind = "source", reference = "dts/g0245d.dts", result = "emmc_appsboot.mbn MBN parse: entry 0x91600000, main segment file 0x8000..0xb907c -> 0x91600000..0x916b907c." },
+  { kind = "source", reference = "board.toml", result = "boot.img v0 header: kernel_addr 0x80008000 confirmed by vmlinux entry 0xffffffc000080000 (PHYS_OFFSET 0x80000000)." },
 ]
 
 [[area]]
 id = "storage"
-status = "in-progress"
+status = "planned"
 components = []
-paths = ["scripts/extract-qfil.sh", "board.toml"]
+paths = [
+  "scripts/extract-qfil.sh",
+  "board.toml",
+]
 inputs = [
   "UFS 2.0 controller ufshc@624000, PHY ufsphy@627000, SPI 265; 64 GB part; stock GPT from the QFIL rawprogram XML (4096 B sectors, multi-LUN).",
   "Partition geometry from rawprogram_unsparse*.xml (scripts/extract-files.py): userdata LBA 74312..14526452 (55.13 GiB), system 56074..842457 (3.00 GiB), boot 39690..56073 (64 MiB), persist 8..1180, cache 8200..40986; board.toml now carries the real userdata window.",
   "UFS golden copy image present: G0245D_fs_image_golden_copy_srdsds_mbnautosel_asdiv_1031.img (UFS firmware).",
 ]
-configuration = ["userdata LBA geometry 74312..14526452 recorded in board.toml from the stock rawprogram XMLs."]
-procedure = ["Implement NativeUfs8996 (UFS 2.0 register set, not ShengUfs); then verify capacity, GPT and known blocks."]
-findings = ["Collect the first link-up and command-completion observation."]
-completion = ["Host: register, clock, link and SMMU facts match the board inventory. Reads: SCSI capacity, GPT and known blocks are correct; OS/SystemOS windows stay within userdata. Root: the configured volume mounts and launchd starts."]
-limits = ["No UFS 2.0 driver exists in the UniXNU catalog; this is the largest stage 2 component."]
-next_action = ["Port the UFS 2.0 init sequence from the stock kernel driver; inventory clocks/resets from the QFIL GCC table; parse gpt_main*.bin to confirm the on-device GPT matches the rawprogram extents."]
+configuration = [
+  "userdata LBA geometry 74312..14526452 recorded in board.toml from the stock rawprogram XMLs.",
+]
+procedure = [
+  "Implement NativeUfs8996 (UFS 2.0 register set, not ShengUfs); then verify capacity, GPT and known blocks.",
+]
+findings = [
+  "Collect the first link-up and command-completion observation.",
+]
+completion = [
+  "Host: register, clock, link and SMMU facts match the board inventory. Reads: SCSI capacity, GPT and known blocks are correct; OS/SystemOS windows stay within userdata. Root: the configured volume mounts and launchd starts.",
+]
+limits = [
+  "No UFS 2.0 driver exists in the UniXNU catalog; this is the largest stage 2 component.",
+]
+next_action = [
+  "Port the UFS 2.0 init sequence from the stock kernel driver; inventory clocks/resets from the QFIL GCC table; parse gpt_main*.bin to confirm the on-device GPT matches the rawprogram extents.",
+]
 evidence = [
-  "rawprogram_unsparse*.xml and gpt_main*.bin parsed; firehose programmer prog_ufs_firehose_8996_ddr.elf present.",
-  "firmware/g0245d-firmware.json carries the per-partition LBA table.",
+  { kind = "source", reference = "board.toml", result = "rawprogram_unsparse*.xml and gpt_main*.bin parsed; firehose programmer prog_ufs_firehose_8996_ddr.elf present." },
+  { kind = "source", reference = "scripts/extract-qfil.sh", result = "firmware/g0245d-firmware.json carries the per-partition LBA table." },
 ]
 
 [[area]]
 id = "display"
-status = "in-progress"
+status = "planned"
 components = []
-paths = ["dts/g0245d.dts", "dts/panel-ft8716.txt", "board.toml"]
+paths = [
+  "dts/g0245d.dts",
+  "dts/panel-ft8716.txt",
+  "board.toml",
+]
 inputs = [
   "MDP5 mdss@900000, mdp@901000, DSI0 dsi@994000, DSI PHY 28nm@994400.",
   "Panel identified: FocalTech ft8716 1080p video mode DSI panel (qcom,mdss_dsi_ft8716_1080p_video). 1080x1920, 60 fps, 24 bpp rgb_swap_rgb, 4 lanes, burst mode; porches hfp 32/hbp 32/hpw 4, vfp 16/vbp 16/vpw 2; backlight min 1 max 953; reset sequence [1,10,0,10,1,10] ms; lp11-init.",
   "Full DCS on/off sequences decoded into dts/panel-ft8716.txt (18 on packets + 2 off packets, qcom binding format).",
 ]
-configuration = ["Stage 1 uses the firmware framebuffer (GOP handoff) via GopFramebuffer; splash_region 0x83401000/0x23ff000 now recorded in board.toml and dts."]
-procedure = ["Read the ABL framebuffer log for base/size/stride; enable GopFramebuffer; then implement Mdp5 native path with dts/panel-ft8716.txt."]
+configuration = [
+  "Stage 1 uses the firmware framebuffer (GOP handoff) via GopFramebuffer; splash_region 0x83401000/0x23ff000 now recorded in board.toml and dts.",
+]
+procedure = [
+  "Read the ABL framebuffer log for base/size/stride; enable GopFramebuffer; then implement Mdp5 native path with dts/panel-ft8716.txt.",
+]
 findings = [
   "Collect the first known-frame observation with geometry and colors.",
   "splash.img holds 3 RGB888 frames of 1080x1920 behind a 'SPLASH!!' header; the ABL/MDP decodes one frame into cont_splash_mem@0x83401000 - the handoff framebuffer is RGB888 (3 B/px) while the panel runs 24bpp rgb_swap_rgb, so GopFramebuffer must declare the actual splash pixel format.",
   "xbl.elf reserves 'Display Reserved' 0x80400000-0x80C00000 (8 MB, WRITE_THROUGH) as the XBL early framebuffer, distinct from the ABL->OS continuous splash cont_splash_mem@0x83401000 (36 MB). The UniXNU GOP handoff framebuffer is cont_splash_mem@0x83401000 with geometry 1080x1920 and RGB888 stride (from splash.img decode); XBL's Display Reserved region is not used by UniXNU and may be reclaimed.",
 ]
-completion = ["A known frame appears with correct geometry and colors, then userland presentation and backlight controls work."]
-limits = ["Backlight controller (PMIC LPG vs WLED) still to confirm from the DTS pwm/wled node; panel status-command reg-read mode needs the DSI 2.0 read path."]
-next_action = ["Locate the backlight node (qcom,mdss-dsi-bl-pmic-control-type) in board.dts; implement Mdp5 + DSI 0 controller stage."]
+completion = [
+  "A known frame appears with correct geometry and colors, then userland presentation and backlight controls work.",
+]
+limits = [
+  "Backlight controller (PMIC LPG vs WLED) still to confirm from the DTS pwm/wled node; panel status-command reg-read mode needs the DSI 2.0 read path.",
+]
+next_action = [
+  "Locate the backlight node (qcom,mdss-dsi-bl-pmic-control-type) in board.dts; implement Mdp5 + DSI 0 controller stage.",
+]
 evidence = [
-  "board.dts line 1510: qcom,mdss_dsi_ft8716_1080p_video with full timing/porch/init data.",
-  "splash.img: 'SPLASH!!' header w=1080 h=1920 + 3x6220800 B RGB888 frames (total 18663936 B).",
+  { kind = "source", reference = "dts/panel-ft8716.txt", result = "board.dts line 1510: qcom,mdss_dsi_ft8716_1080p_video with full timing/porch/init data." },
+  { kind = "source", reference = "dts/g0245d.dts", result = "splash.img: 'SPLASH!!' header w=1080 h=1920 + 3x6220800 B RGB888 frames (total 18663936 B)." },
 ]
 
 [[area]]
 id = "input"
-status = "in-progress"
+status = "planned"
 components = []
-paths = ["dts/msm8996.dtsi", "dts/g0245d.dts"]
+paths = [
+  "dts/msm8996.dtsi",
+  "dts/g0245d.dts",
+]
 inputs = [
   "Touch identified: Synaptics DSX (compatible 'synaptics,dsx') at I2C 0x20 on i2c@75ba000 (BLSP2 I2C, SPI 106, 400 kHz), irq GPIO 125 (active-high), reset GPIO 89, regulators vdd/avdd; display coords 0..1599 x 0..2559, panel coords 0..1599 x 0..2703.",
   "Fingerprint: Goodix GF on SPI (goodix,gf, 10 MHz), irq GPIO 121, reset GPIO 51.",
   "Hardware buttons hold/voldown/volup.",
 ]
-configuration = ["Button HID mapping mirrors sheng (home-button-type = 2)."]
-procedure = ["Implement BlspI2c; port a Synaptics DSX (S3xxx/S3700) touch driver; verify coordinate scaling."]
-findings = ["Collect the first I2C scan and touch report observation."]
-completion = ["Touches map to the display, simultaneous contacts keep stable IDs, release events arrive, and buttons produce expected HID reports."]
-limits = ["Touch firmware (Synaptics PR = product ID / config image) not yet identified; display/panel coord mismatch (1600x2560 vs 1080x1920) needs the DSX config blob."]
-next_action = ["REA: locate the synaptics config/firmware blob (persist partition or touch firmware file) and extract the product ID; then implement BlspI2c + DSX driver."]
+configuration = [
+  "Button HID mapping mirrors sheng (home-button-type = 2).",
+]
+procedure = [
+  "Implement BlspI2c; port a Synaptics DSX (S3xxx/S3700) touch driver; verify coordinate scaling.",
+]
+findings = [
+  "Collect the first I2C scan and touch report observation.",
+]
+completion = [
+  "Touches map to the display, simultaneous contacts keep stable IDs, release events arrive, and buttons produce expected HID reports.",
+]
+limits = [
+  "Touch firmware (Synaptics PR = product ID / config image) not yet identified; display/panel coord mismatch (1600x2560 vs 1080x1920) needs the DSX config blob.",
+]
+next_action = [
+  "REA: locate the synaptics config/firmware blob (persist partition or touch firmware file) and extract the product ID; then implement BlspI2c + DSX driver.",
+]
 evidence = [
-  "board.dts line 4608: synaptics@20 on i2c@75ba000 with gpio/regulator/coords.",
-  "board.dts line 8326: goodix_touchfinger@0 (fingerprint, SPI).",
+  { kind = "source", reference = "dts/g0245d.dts", result = "board.dts line 4608: synaptics@20 on i2c@75ba000 with gpio/regulator/coords." },
+  { kind = "source", reference = "dts/g0245d.dts", result = "board.dts line 8326: goodix_touchfinger@0 (fingerprint, SPI)." },
 ]
 
 [[area]]
 id = "gpu"
 status = "planned"
 components = []
-paths = ["dts/msm8996.dtsi", "dts/g0245d.dts"]
-inputs = ["Adreno 530 (qcom,adreno-530.2) gpu@b00000, SPI 300, smmu-v2 0xb40000; GPU reserved memory to be read from the XBL memory map."]
-configuration = ["GPU disabled in stage 1-3; Metal acceleration is a later milestone."]
-procedure = ["Implement Adreno530 (A5xx KGSL register set, GMU-equivalent, ZAP firmware adoption) and an A5xx Metal translation path."]
-findings = ["Collect the first submission/fence observation."]
-completion = ["GPU submissions complete, mapping/fence handling is correct, a known image renders, and the selected Metal client presents it."]
-limits = ["Adreno740/AdrenoMetal are A7xx-only; the A5xx stack is new work with no catalog component."]
-next_action = ["Inventory the KGSL/GMU firmware blobs from the QFIL package with REA (gpu firmware in NON-HLOS.bin / vendor partition)."]
+paths = [
+  "dts/msm8996.dtsi",
+  "dts/g0245d.dts",
+]
+inputs = [
+  "Adreno 530 (qcom,adreno-530.2) gpu@b00000, SPI 300, smmu-v2 0xb40000; GPU reserved memory to be read from the XBL memory map.",
+]
+configuration = [
+  "GPU disabled in stage 1-3; Metal acceleration is a later milestone.",
+]
+procedure = [
+  "Implement Adreno530 (A5xx KGSL register set, GMU-equivalent, ZAP firmware adoption) and an A5xx Metal translation path.",
+]
+findings = [
+  "Collect the first submission/fence observation.",
+]
+completion = [
+  "GPU submissions complete, mapping/fence handling is correct, a known image renders, and the selected Metal client presents it.",
+]
+limits = [
+  "Adreno740/AdrenoMetal are A7xx-only; the A5xx stack is new work with no catalog component.",
+]
+next_action = [
+  "Inventory the KGSL/GMU firmware blobs from the QFIL package with REA (gpu firmware in NON-HLOS.bin / vendor partition).",
+]
 evidence = []
 
 [[area]]
 id = "network"
-status = "in-progress"
+status = "planned"
 components = []
-paths = ["dts/msm8996.dtsi", "dts/g0245d.dts"]
+paths = [
+  "dts/msm8996.dtsi",
+  "dts/g0245d.dts",
+]
 inputs = [
   "Wi-Fi/BT identified: QCA6174. CNSS PCIe node (qcom,cnss, wlan-en-gpio 0xf9 0x08, bootstrap gpio 46, 4 regulators, 4-case bus voting) + bt_qca6174 node (reset gpio 0xf9 0x13, 4 regulators with voltage levels) + qca_cld_wlan.ko module in the QFIL package.",
   "PCIe controllers at 0x600000/0x608000/0x610000.",
 ]
-configuration = ["Wi-Fi enablement follows the PCIe stage; the CNSS regulators/GPIOs are recorded here for the driver."]
-procedure = ["Bring up PCIe root complex; port a CNSS/QCA6174 host driver (ath10k-family CNSS or qcacld) and the BT UART path (bt_qca6174 + BTFM.bin)."]
-findings = ["Collect the first scan/association observation."]
-completion = ["Scanning, association, address configuration and sustained receive/transmit traffic pass with the selected firmware."]
-limits = ["QCA6174 firmware blobs (wlan mdsp mbn + board bin + BTFM.bin) present in the package but the host-driver port (CNSS probe/PCIe power sequencing) is unstarted."]
-next_action = ["REA: inventory the QCA6174 firmware set from the QFIL package; map CNSS register accesses from qca_cld_wlan.ko."]
+configuration = [
+  "Wi-Fi enablement follows the PCIe stage; the CNSS regulators/GPIOs are recorded here for the driver.",
+]
+procedure = [
+  "Bring up PCIe root complex; port a CNSS/QCA6174 host driver (ath10k-family CNSS or qcacld) and the BT UART path (bt_qca6174 + BTFM.bin).",
+]
+findings = [
+  "Collect the first scan/association observation.",
+]
+completion = [
+  "Scanning, association, address configuration and sustained receive/transmit traffic pass with the selected firmware.",
+]
+limits = [
+  "QCA6174 firmware blobs (wlan mdsp mbn + board bin + BTFM.bin) present in the package but the host-driver port (CNSS probe/PCIe power sequencing) is unstarted.",
+]
+next_action = [
+  "REA: inventory the QCA6174 firmware set from the QFIL package; map CNSS register accesses from qca_cld_wlan.ko.",
+]
 evidence = [
-  "board.dts line 8176: qcom,cnss node; line 16507: bt_qca6174 node; qca_cld_wlan.ko in QFIL images.",
+  { kind = "source", reference = "dts/g0245d.dts", result = "board.dts line 8176: qcom,cnss node; line 16507: bt_qca6174 node; qca_cld_wlan.ko in QFIL images." },
 ]
 
 [[area]]
 id = "audio"
 status = "planned"
 components = []
-paths = ["dts/msm8996.dtsi"]
-inputs = ["ADSP (slpi) region 0x8ea00000/43 MB with pas-id 0x0c, edge 'dsps', smem-id 0x1a8, gpio err-fatal/proxy-unvote/err-ready 0x152; glink/smp2p peers, Q6 DSP firmware (adsp.mbn / slpi.mbn)."]
-configuration = ["Audio deferred until DSP glink transport works."]
-procedure = ["Adopt the Q6 firmware through QcomMdt; bring up QcomGlink/QcomSmp2p against msm8996 RPM."]
-findings = ["Collect the first DSP boot and route observation."]
-completion = ["Each declared route carries the selected audio format through playback or capture and handles start/stop correctly."]
-limits = ["DSP firmware and glink channel layout unverified."]
-next_action = ["Extract slpi/adsp firmware; confirm the glink edge layout against the stock sources."]
+paths = [
+  "dts/msm8996.dtsi",
+]
+inputs = [
+  "ADSP (slpi) region 0x8ea00000/43 MB with pas-id 0x0c, edge 'dsps', smem-id 0x1a8, gpio err-fatal/proxy-unvote/err-ready 0x152; glink/smp2p peers, Q6 DSP firmware (adsp.mbn / slpi.mbn).",
+]
+configuration = [
+  "Audio deferred until DSP glink transport works.",
+]
+procedure = [
+  "Adopt the Q6 firmware through QcomMdt; bring up QcomGlink/QcomSmp2p against msm8996 RPM.",
+]
+findings = [
+  "Collect the first DSP boot and route observation.",
+]
+completion = [
+  "Each declared route carries the selected audio format through playback or capture and handles start/stop correctly.",
+]
+limits = [
+  "DSP firmware and glink channel layout unverified.",
+]
+next_action = [
+  "Extract slpi/adsp firmware; confirm the glink edge layout against the stock sources.",
+]
 evidence = [
-  "board.dts line 8208: qcom,ssc@1c00000 (slpi) with full PAS/glink properties.",
+  { kind = "source", reference = "dts/g0245d.dts", result = "board.dts line 8208: qcom,ssc@1c00000 (slpi) with full PAS/glink properties." },
 ]
 
 [[area]]
 id = "power"
 status = "planned"
 components = []
-paths = ["dts/msm8996.dtsi"]
+paths = [
+  "dts/msm8996.dtsi",
+]
 inputs = [
   "RPM glink (rpm-msg-ram@68000), tcsr_mutex@740000, SPMI bus@400f000, regulators; battery itech_3000mah (max 4.26 V, cut-off 3.30 V, term 100 mA, 2000 mA fast charge, full fg-profile-data).",
   "tsens@4ad000 (8 sensors) for thermal.",
 ]
-configuration = ["sleep-disabled = 1 until suspend is implemented."]
-procedure = ["Bring up QcomRpmh/QcomSmem against the msm8996 RPM; then battery and CPU frequency policy."]
-findings = ["Collect the first RPM transaction and regulator observation."]
-completion = ["Declared power controls and battery readings match observations; each claimed sleep/resume transition restores its dependent peripherals."]
-limits = ["RPM firmware protocol version unverified."]
-next_action = ["Confirm the RPM message RAM layout from the stock XBL."]
+configuration = [
+  "sleep-disabled = 1 until suspend is implemented.",
+]
+procedure = [
+  "Bring up QcomRpmh/QcomSmem against the msm8996 RPM; then battery and CPU frequency policy.",
+]
+findings = [
+  "Collect the first RPM transaction and regulator observation.",
+]
+completion = [
+  "Declared power controls and battery readings match observations; each claimed sleep/resume transition restores its dependent peripherals.",
+]
+limits = [
+  "RPM firmware protocol version unverified.",
+]
+next_action = [
+  "Confirm the RPM message RAM layout from the stock XBL.",
+]
 evidence = [
-  "board.dts qcom,battery-data + qcom,itech-3000mah node transcribed.",
+  { kind = "source", reference = "dts/g0245d.dts", result = "board.dts qcom,battery-data + qcom,itech-3000mah node transcribed." },
 ]
 
 [[area]]
 id = "packaging"
-status = "complete"
+status = "implemented"
 components = []
-paths = ["scripts/package-g0245d-boot.py", "board.toml"]
+paths = [
+  "scripts/package-g0245d-boot.py",
+  "board.toml",
+]
 inputs = [
   "Android boot image v0 header from the stock boot.img (scripts/extract-files.py): kernel_addr 0x80008000, ramdisk_addr 0x81000000, tags_addr 0x80000100, page_size 4096, kernel 39343981 B, ramdisk 7778033 B.",
   "Stock cmdline (v0 header, offset 64): 'console=ttyHSL0,115200,n8 androidboot.console=ttyHSL0 androidboot.hardware=qcom user_debug=31 msm_rtb.filter=0x237 ehci-hcd.park=3 lpm_levels.sleep_disabled=1 cma=32M@0-0xffffffff'.",
   "Mu-Silicium msmoot image config; payload volume G0245D 192 MiB inside userdata (LBA 74312..14526452).",
 ]
-configuration = ["[bootimg] dtb_node carries the real cont_splash_region 0x83401000/0x23ff000 for the stock bootloader."]
-procedure = ["Pack the boot image; verify header, ramdisk_bytes and DTB round-trip; flash with fastboot."]
+configuration = [
+  "[bootimg] dtb_node carries the real cont_splash_region 0x83401000/0x23ff000 for the stock bootloader.",
+]
+procedure = [
+  "Pack the boot image; verify header, ramdisk_bytes and DTB round-trip; flash with fastboot.",
+]
 findings = [
   "Boot chain on G0245D is LK-based (not UEFI): xbl.elf -> emmc_appsboot.mbn (aboot) -> boot.img. BootShim therefore replaces the boot.img kernel slot; aboot still parses the ANDROID! header, verifies the image (boot_verifier.c / VERIFIED_BOOT_SIG) and patches the DTB chosen/bootargs before jumping to the kernel entry.",
   "aboot DTB strings confirm it supports appended-DTB boot.img variants and moves/resizes the dtb buffer, so the BootShim image can carry a DTB for the UEFI stage.",
@@ -281,46 +462,75 @@ findings = [
   "Header address fixup (FUN_91633e50) passes kernel_addr/ramdisk_addr/tags_addr through a memory-map identity translation for DDR (FUN_91603c1c reads the 64-bit base 0x916b2528 = 0x80000000 for the 4 GB part; DDR addresses map to themselves), so the effective load addresses remain 0x80008000 / 0x81000000 / 0x80000100 — consistent with the v0 header and safe for FD_BASE=0x92000000 (above aboot 0x916c4478, below hdmi splash 0xb1c00000; aboot decompresses only into 0x80008000, never into the FD window).",
   "BootShim entry state: aboot decompresses the gzip stream to kernel_addr 0x80008000 (vmlinux entry 0xffffffc000080000 confirms PHYS_OFFSET 0x80000000) and jumps there with x0 pointing at the appended DTB at tags_addr 0x80000100. The decompressed image starts with the ARM64 header, so the shim must keep REQUIRES_KERNEL_HEADER=1 semantics with a valid head.S-style code0 branch.",
   "BootShim.S WRITTEN (uefi-g0245d/BootShim/BootShim.S) implements this exact contract: REQUIRES_KERNEL_HEADER=1 emits the ARM64 head (code0 `b` to real entry, +0x38 magic 0x644d5241, +0x08 = FD_BASE 0x92000000, +0x10 = len(shim)+FD_SIZE); runtime preserves x0=DTB, relocates the firmware volume from (load+shim_size) to FD_BASE 0x92000000 and branches to the UEFI SEC entry. clang --target=aarch64-none-elf compiled it to a 120-byte shim.o that passes every package-g0245d-boot.py assertion (ARM\\x64 magic, header fields, _Payload at end).",
+  "v298-v306 (2026-11-23): every version built a kernel.macho, packed a 56,741,888-byte boot.img (v305 md5 70aa12b2e75221fdfd101542a486d01f, v306 md5 4047de719134bd6dbbe65f676d917c89), verified each probe string inside boot.img and payload, and flashed over fastboot with OK. No v305/v306 text appeared on screen and the v304 trace sequence continued, so the flashed boot image is not the one the bootloader executes.",
 ]
-completion = ["BootShim stage 1 implemented and the boot image packs end-to-end: gzip(120-byte shim + 0x300000 FD) + single appended DTB, v0 header round-trip, gzip/FD/DTB round-trip, 16384 B container within the 64 MiB boot partition. The image is structurally accepted by aboot per the Ghidra-proven contract; flashing to hardware is the only remaining step."]
+completion = [
+  "BootShim stage 1 implemented and the boot image packs end-to-end: gzip(120-byte shim + 0x300000 FD) + single appended DTB, v0 header round-trip, gzip/FD/DTB round-trip, 16384 B container within the 64 MiB boot partition. The image is structurally accepted by aboot per the Ghidra-proven contract; flashing to hardware is the only remaining step.",
+]
 limits = [
   "Stock bootloader unlock state confirmed by Ghidra: a locked retail G0245D boots an unsigned boot.img (boot_verifier errors are non-fatal); unlock (fastboot oem unlock, writes DAT_916902f4) skips verification entirely. QFIL/E DL remains the flashing/bypass path if the boot partition is write-protected.",
   "The stock cmdline requests cma=32M and lpm_levels.sleep_disabled=1; UniXNU supplies its own cmdline, so these are informational only.",
   "BootShim code at kernel_addr 0x80008000 must avoid the appended-DTB region 0x80000100-0x800536F7; it is placed above it, so the default layout is safe. FD_BASE=0x92000000 is confirmed clear of aboot's decompression target.",
   "SILICIUM_UEFI.fd in this build is a PLACEHOLDER (0x300000 bytes, marked G0245D-PLACEHOLDER-UEFI-FD-V0). A real firmware volume needs the Mu-Silicium EDK2 framework (not fetchable in this sandbox), nasm (missing on PATH) and the msm8996 NativeUfs8996/Adreno530/Mdp5/BlspI2c components (upstream not yet written); build it on a full Linux/macOS host then re-run package-g0245d-boot.py.",
 ]
-next_action = ["PACKAGING VALIDATED: flashable g0245d-uefi.img produced (build/g0245d/boot/g0245d-uefi.img), structurally accepted by aboot per the Ghidra-proven contract. REMAINING STEP = physical device: flash via QFIL/fastboot and observe first boot (serial @ BLSP2 UART2 0x75b0000). A real boot also requires the genuine SILICIUM_UEFI.fd (see limits)."]
+next_action = [
+  "PACKAGING VALIDATED: flashable g0245d-uefi.img produced (build/g0245d/boot/g0245d-uefi.img), structurally accepted by aboot per the Ghidra-proven contract. REMAINING STEP = physical device: flash via QFIL/fastboot and observe first boot (serial @ BLSP2 UART2 0x75b0000). A real boot also requires the genuine SILICIUM_UEFI.fd (see limits).",
+  "Before further kernel work, verify which boot partition LK/aboot actually loads (getvar all, erase boot, cold boot with the v306 BOOT SENTINEL image).",
+]
 evidence = [
-  "boot.img v0 header parsed; cmdline at offset 64 (name[16]+unused[2] precede it).",
-  "boot.img kernel slot: zlib decompressobj(31) -> 26375904 B Image + unused_data starting d0 0d fe ed (FDT totalsize 341047), byte-identical to board.dtb.",
-  "boot.img DTB table: 90 concatenated FDTs (each 330177-349324 B, totals 30944820 B, no index header) after the gzip stream; FDT#0 == board.dtb; root ids qcom,msm-id=<0xf6 0x30000>, qcom,board-id=<0x03 0x00>, qcom,pmic-id=<0x20009 0x2000a 0x00 0x00>.",
-  "vmlinux ELF64 LOAD segments: entry 0xffffffc000080000, phys 0x80008000-0x81c03570.",
-  "emmc_appsboot.mbn strings: boot_verifier.c, VERIFIED_BOOT_SIG, 'Failed to jump to kernel', 'Cannot update chosen node [bootargs]', ANDROID! @0x7e168; aboot partition mapping from rawprogram XML.",
-  "scripts/package-g0245d-boot.py end-to-end validated: real 120-byte BootShim (clang, REQUIRES_KERNEL_HEADER=1) + 0x300000 FD (placeholder) -> gzip(shim+FD)+DTB container; v0 header round-trip, gzip/FD/appended-DTB round-trip, 16384 B container inside the 64 MiB boot partition; g0245d-uefi.img written to build/g0245d/boot/.",
-  "Ghidra raw-binary analysis of emmc_appsboot.mbn (pyghidra, base 0x91600000, image file[0x8000:], analyze=False on the existing project at /tmp/test-proj-arm32): decompiled FUN_91635204 (boot-from-mmc: read boot.img -> gunzip to buffer tail -> FUN_916484e0 memcpy to kernel_addr 0x80008000 -> FUN_9161981c DTB match -> memcpy to tags_addr 0x80000100 -> FUN_91633e50 header fixup), FUN_91634f74 (boot_linux: update_device_tree -> 'ARMd' check at +0x38 -> SCM call FUN_9161b2bc scm cmd (1<<10)|0xf / FUN_9161b508 id 0x200010f -> TZ jumps kernel_entry with x0=DTB), and the boot_verifier gate (FUN_9160f7cc / FUN_91635160 / FUN_91633d24 / FUN_9163436c); xref/string scans over 102515 instructions across 725116 B.",
+  { kind = "source", reference = "scripts/package-g0245d-boot.py", result = "boot.img v0 header parsed; cmdline at offset 64 (name[16]+unused[2] precede it)." },
+  { kind = "source", reference = "board.toml", result = "boot.img kernel slot: zlib decompressobj(31) -> 26375904 B Image + unused_data starting d0 0d fe ed (FDT totalsize 341047), byte-identical to board.dtb." },
+  { kind = "source", reference = "scripts/linux/flash-boot.sh", result = "boot.img DTB table: 90 concatenated FDTs (each 330177-349324 B, totals 30944820 B, no index header) after the gzip stream; FDT#0 == board.dtb; root ids qcom,msm-id=<0xf6 0x30000>, qcom,board-id=<0x03 0x00>, qcom,pmic-id=<0x20009 0x2000a 0x00 0x00>." },
+  { kind = "source", reference = "scripts/package-g0245d-boot.py", result = "vmlinux ELF64 LOAD segments: entry 0xffffffc000080000, phys 0x80008000-0x81c03570." },
+  { kind = "source", reference = "board.toml", result = "emmc_appsboot.mbn strings: boot_verifier.c, VERIFIED_BOOT_SIG, 'Failed to jump to kernel', 'Cannot update chosen node [bootargs]', ANDROID! @0x7e168; aboot partition mapping from rawprogram XML." },
+  { kind = "source", reference = "scripts/linux/flash-boot.sh", result = "scripts/package-g0245d-boot.py end-to-end validated: real 120-byte BootShim (clang, REQUIRES_KERNEL_HEADER=1) + 0x300000 FD (placeholder) -> gzip(shim+FD)+DTB container; v0 header round-trip, gzip/FD/appended-DTB round-trip, 16384 B container inside the 64 MiB boot partition; g0245d-uefi.img written to build/g0245d/boot/." },
+  { kind = "source", reference = "scripts/package-g0245d-boot.py", result = "Ghidra raw-binary analysis of emmc_appsboot.mbn (pyghidra, base 0x91600000, image file[0x8000:], analyze=False on the existing project at /tmp/test-proj-arm32): decompiled FUN_91635204 (boot-from-mmc: read boot.img -> gunzip to buffer tail -> FUN_916484e0 memcpy to kernel_addr 0x80008000 -> FUN_9161981c DTB match -> memcpy to tags_addr 0x80000100 -> FUN_91633e50 header fixup), FUN_91634f74 (boot_linux: update_device_tree -> 'ARMd' check at +0x38 -> SCM call FUN_9161b2bc scm cmd (1<<10)|0xf / FUN_9161b508 id 0x200010f -> TZ jumps kernel_entry with x0=DTB), and the boot_verifier gate (FUN_9160f7cc / FUN_91635160 / FUN_91633d24 / FUN_9163436c); xref/string scans over 102515 instructions across 725116 B." },
 ]
 
 [[area]]
 id = "diagnostics"
-status = "in-progress"
+status = "implemented"
 components = []
-paths = ["scripts/check-g0245d.py", "scripts/read-g0245d-log.py", "porting.toml"]
+paths = [
+  "scripts/check-*.py",
+  "scripts/read-*.py",
+  "scripts/linux/patch_v*.py",
+  "scripts/linux/flash-boot.sh",
+  "porting.toml",
+]
 inputs = [
   "Serial console confirmed: BLSP2 UART2 @ 0x75b0000, SPI 114 (0x72), status ok in the stock DTS; cmdline console=ttyHSL0,115200,n8.",
   "USB Type-C debug cable; vmlinux (193 MB with symbols) available for offline analysis of the stock kernel.",
 ]
-configuration = ["kernel_args carries console=ttyHSL0,115200,n8 for the serial stage."]
-procedure = ["Add the firmware log exporter; capture QR logs; then persistent capture after storage works."]
+configuration = [
+  "kernel_args carries console=ttyHSL0,115200,n8 for the serial stage.",
+]
+procedure = [
+  "Add the firmware log exporter; capture QR logs; then persistent capture after storage works.",
+]
 findings = [
   "Serial capture remains pending. The iOS 16.5 (20F66) v211 image (md5 81cf3d3dc51e5511032e40be51b28938, device source 5b78cd7f4ec839eabc61850a59eb2ef0b12fcca8) was flashed before IMG_20261120_151717.jpg; calibrated framebuffer-band inspection finds raw 1500 orange present and raw 1520 purple absent. Since raw 1500 is after boot_progress_init(), the unresolved interval is the following five timer/WFE/misc calls, before arm_vm_init().",
   "The applied XNU osfmk/arm/machine_routines_apple.c defines configure_timer_apple_regs(), configure_misc_apple_boot_args() and configure_misc_apple_regs() as empty functions. An Apple-specific register trap is not established; wfe_timeout_configure() and wfe_timeout_init() in osfmk/arm64/machine_routines.c remain active candidates.",
   "The v212 diagnostic-only patch is applied and its kernel finished compiling on 2026-11-20 (kernel.macho sha256 870dd404469d7a643d6d686edd78dffaf42a227f1817e8ec58cb650962c404ee); the payload was rebuilt (24 MiB) and verified to contain that kernel. No boot image was packed: linux/ios-pipeline.py aborted at its staged-kernel readback (FileNotFoundError on payload/stage/EFI/UniXNU/Payloads/kernel.macho), so v212 has not been flashed. Its sequential checkpoints are 1660 before configure_timer_apple_regs(), 1680 after it, 1700 after wfe_timeout_configure(), 1720 after wfe_timeout_init(), 1740 after configure_misc_apple_boot_args(), and 1760 after configure_misc_apple_regs(). These execute between existing raw 1500 and raw 1520; raw 1480 remains the later arm_vm_init() entry boundary. No v212 boot or fault location is verified yet.",
+  "v298-v306 (2026-11-23): on-device framebuffer trace probes followed the XNU VFS root-mount chain: v298 reached VFS_ROOT, v300 entered namei, v301 froze in lookup_consider_update_cache (name cache), v302 bypassed the name cache and reached mount_common, v303 passed mount_common (mount_zone Z_WAITOK), and v304 entered devfs_mount (dm kalloc ok) before the DEVFS_LOCK region.",
+  "The heartbeat \"hb A/B label\" is not a timer: g0245d_hb() is called only when a trace prints (arm_init.c:1114/1127/1155/1169), so unchanged A/B means no new trace. trace_seq is a BSS static (arm_init.c:906) that restarts at 0 on every real reboot; a screen showing hb 8567/8524 together with v303/v304 probes can only come from the v304 kernel instance.",
+  "v305/v306 boot images (kernel.macho sha256 differs, all probe strings verified inside boot.img and payload, pack and fastboot flash OK) produced no new on-screen text; the device kept executing the v304 kernel. Earlier \"DEVFS_LOCK deadlock\" readings are therefore void and flash boot effectiveness is the blocker.",
 ]
-completion = ["Each claimed milestone has a reproducible command, a matching source/image revision and an accessible result."]
-limits = ["Device availability not established; serial line wiring from the service manual."]
-next_action = ["Confirm the debug UART wiring and cable from the service manual; use the stock vmlinux + board.dts for offline driver reference."]
+completion = [
+  "Each claimed milestone has a reproducible command, a matching source/image revision and an accessible result.",
+]
+limits = [
+  "Device availability not established; serial line wiring from the service manual.",
+]
+next_action = [
+  "With the device in fastboot: run \"fastboot getvar all\" to look for a backup/bootbak partition, \"fastboot erase boot\", reflash the v306 BOOT SENTINEL image, then power-cycle (cold boot) and check whether \"v306 BOOT SENTINEL\" appears with trace_seq restarting from 1. Appearance proves the new kernel runs; absence confirms the boot layer loads an old or cached boot.",
+  "Confirm the debug UART wiring and cable from the service manual; use the stock vmlinux + board.dts for offline driver reference.",
+]
 evidence = [
   { kind = "source", reference = "dts/g0245d.dts", result = "The stock DTS reference records serial@075b0000 enabled and serial@07570000 disabled; a captured XNU serial log is still pending." },
   { kind = "source", reference = "patches/xnu/zzz211-g0245d-ios165-midinit-marks.patch", result = "The raw 1500 marker follows boot_progress_init(); raw 1520 follows configure_timer_apple_regs(), wfe_timeout_configure(), wfe_timeout_init(), configure_misc_apple_boot_args() and configure_misc_apple_regs(). Local v211 photo IMG_20261120_151717.jpg contains the former marker and lacks the latter at its calibrated position; the photo is not published in this repository." },
   { kind = "source", reference = "patches/xnu/zzz212-g0245d-ios165-timer-wfe-marks.patch", result = "Adds six checkpoints using the existing framebuffer helper without changing initialization calls. The applied arm_init.c in the build tree reverse-applies this patch cleanly, and the compiled kernel carries the six new band store sites. No image or device success is asserted." },
+  { kind = "source", reference = "scripts/linux/patch_v298.py", result = "v298 probe set first reached VFS_ROOT; the cumulative v298-v306 checkpoint series is committed in scripts/linux/." },
+  { kind = "source", reference = "scripts/linux/patch_v306.py", result = "v306 adds a BOOT SENTINEL at kernel_bootstrap() (startup.c) as the earliest on-screen marker, used to prove whether a freshly flashed kernel actually executes." },
+  { kind = "source", reference = "scripts/linux/flash-boot.sh", result = "Flashes only the boot partition and verifies md5 plus device serial; used by the automated v298-v306 build/pack/flash pipelines." },
 ]
