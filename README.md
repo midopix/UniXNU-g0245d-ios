@@ -163,8 +163,6 @@ consolidated kernel patch, the build and flash scripts, the device kernel
 config, the device tree and the technical notes needed to redo the work.
 
 The running log — per-version judgement, the photo-by-photo reading notes,
-the hardware fact dump, the full rebuild guide and the boot images — lives in
-the private repository `midopix/G0245D-xnu-bringup` (`HANDOFF.md`, the single
-source of truth, plus the `vNNN` release assets). It is intentionally not
-mirrored here.
+the hardware fact dump, the full rebuild guide and the boot images — is kept
+outside this repository and is intentionally not mirrored here.
 

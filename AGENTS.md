@@ -75,7 +75,9 @@ either one, and do not wait to be asked.
 | Target | Repository | Contents | Sanitising |
 |---|---|---|---|
 | public | `midopix/UniXNU-g0245d-ios` | sources, patches, scripts, manifests, docs | **required**: run `scripts/desensitize.py .` first |
-| private | `midopix/G0245D-xnu-bringup` | everything, including binaries, photos, raw logs, device serials, absolute paths | **none**: full upload |
+
+The build artefacts, the raw logs, the photos and the running progress log
+live outside this repository and are never published here.
 
 - `github.com:443` is blocked here; every push goes through `api.github.com`.
   Use `scripts/push_tree.py <dir> <owner/repo> --branch main` (compares blob
@@ -84,5 +86,6 @@ either one, and do not wait to be asked.
   rewrite.
 - Files above 30 MB cannot go through the blob API (`boot.img`); use a release
   asset tagged `vNNN`.
-- `HANDOFF.md` in the private repository is the single source of truth. Update
-  it (sections 0, 2, 6, 8, 10 and 12) **before** uploading, every build.
+- The project's handoff document (kept outside this repository) is the single
+  source of truth for build state. Update it (sections 0, 2, 6, 8, 10 and 12)
+  **before** uploading, every build.

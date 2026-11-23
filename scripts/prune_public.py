@@ -8,8 +8,8 @@ Trees API is the only way in: post a tree based on the current one with the
 unwanted paths set to `sha: null`, commit it and move the branch.
 
 The default list is the progress/handoff material that must stay out of the
-public repository.  The single source of truth for the project state is the
-private repository's HANDOFF.md.
+public repository.  The project handoff document is kept outside this
+repository.
 
 Usage:
     GITHUB_TOKEN=... python3 scripts/prune_public.py --dry-run
