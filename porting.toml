@@ -197,11 +197,15 @@ evidence = [
 [[area]]
 id = "storage"
 status = "implemented"
-components = []
+components = ["NativeUfs8996"]
 paths = [
   "scripts/extract-qfil.sh",
   "scripts/linux/patch_v311.py",
   "scripts/linux/patch_v320.py",
+  "scripts/linux/patch_v329.py",
+  "scripts/linux/patch_v330.py",
+  "scripts/linux/patch_v331.py",
+  "drivers/NativeUfs8996/NativeUfs8996.cpp",
   "board.toml",
 ]
 inputs = [
@@ -219,26 +223,34 @@ procedure = [
 findings = [
   "2026-11-24 device observation: devfs_kernel_mount returns 0 and bsd_init completes (v303 mc vfs ret 0 -> v300 dkm km ret 0 -> v300 post devfs -> siginit / utaskbootstrap / mountroot_post_hook done -> v248 bsd init done).",
   "mdevstrategy serves a 4096-byte read at blkoff 0 from the mockfs memory disk (v312 devid 0 / count 4096 / bufmap ok / mdflags 1 / v313 read virt / v314 biodone ok).",
-  "PID1 exec of /sbin/launchd returns 0 (v318 execve ret 0) with the 56-byte synthetic Mach-O that patch_v289 places in mockfs; a real launchd still needs a real root volume.",
-  "The UFS 2.0 driver (NativeUfs8996) still does not exist, so no on-device UFS link-up, capacity or GPT read has been observed.",
+  "Correction to an earlier entry in this file: PID1 exec of /sbin/launchd does NOT return 0. Probe v329 reports v329 pan i 2 with v329 pan err 8 and the expanded message 'Process 1 exec of /sbin/launchd failed, errno 8', i.e. ENOEXEC after the third attempt. The earlier 'v318 execve ret 0' line came from a different call site and was misread.",
+  "The synthetic launchd image was itself invalid. mach_header_64 needs eight uint32 fields (32 bytes) and patch_v289 emitted seven, so ncmds held 352 and sizeofcmds held 1. The loader walked 352 bogus load commands, which is what produced the EL1 data aborts (ESR_EC 0x25) seen during exec.",
+  "patch_v330 rebuilds the image correctly: 392 bytes total, ncmds=2, sizeofcmds=360, cpusubtype=ARM64_ALL, LC_SEGMENT_64 with filesize matching the real 0x100c bytes, and the standard 34-field arm64 thread state (count=68, cpsr=0 for EL0t, pc=0x101000, sp=0x102000).",
+  "After the image fix the next wall is PID1's scratch page. load_init_program allocates it with mach_vm_allocate_kernel(current_map(), VM_FLAGS_ANYWHERE, ...) and discards the return value, so the page can land at 0x1000 with only a lazy mapping; copyout then faults on every byte (v328 far 0x1000 followed by repeated ESR_EC 0x25). patch_v331 logs the allocation result and attempts vm_map_wire_kernel on that page.",
+  "Linking the NativeUfs8996 archive (v321/v322) reproducibly breaks the exec path even with no ufshc device-tree node enabled, so the driver is kept out of the kernel link.",
+  "The UFS 2.0 controller has not been brought up on hardware: no link-up, capacity read or GPT parse has been observed.",
 ]
 completion = [
   "Host: register, clock, link and SMMU facts match the board inventory. Reads: SCSI capacity, GPT and known blocks are correct; OS/SystemOS windows stay within userdata. Root: the configured volume mounts and launchd starts.",
 ]
 limits = [
-  "No UFS 2.0 driver exists in the UniXNU catalog; this is the largest stage 2 component.",
-  "The root volume that mounted on 2026-11-24 is mockfs (RAM), not UFS; the launchd it execs is a 56-byte synthetic Mach-O, not the real binary.",
+  "The UFS driver exists only as a read-only register probe (drivers/NativeUfs8996). It is not linked because linking it destabilises the exec path, so CONFIG_XNU_BUILD_ARCHIVES and CONFIG_XNU_EXTRA_LD_ARCHIVES are off in configs/g0245d_defconfig.",
+  "The mounted root is mockfs (RAM), not UFS, and the launchd it execs is a synthetic Mach-O rather than the real binary.",
+  "As of the last verified image the exec still does not complete: it ends either in ENOEXEC or in an early data abort while copying argv into the scratch page.",
 ]
 next_action = [
-  "Port the UFS 2.0 init sequence from the stock kernel driver; inventory clocks/resets from the QFIL GCC table; parse gpt_main*.bin to confirm the on-device GPT matches the rawprogram extents.",
-  "Replace the mockfs fixture with the real payload root once NativeUfs8996 lands, then re-check that PID1 execs the real launchd.",
+  "Make PID1's scratch page usable: check the mach_vm_allocate_kernel return value and wire the page explicitly, or fix the pmap fault path for the first manufactured process, then confirm execve returns 0.",
+  "Then implement the real UFS 2.0 init path: clocks and resets from the QFIL GCC table, UIC DME_LINKSTARTUP, UTRL/UTRD transfers, and a GPT parse that matches the rawprogram extents.",
+  "Root-cause why merely linking NativeUfs8996 disturbs exec before enabling that driver again.",
 ]
 evidence = [
   { kind = "source", reference = "board.toml", result = "rawprogram_unsparse*.xml and gpt_main*.bin parsed; firehose programmer prog_ufs_firehose_8996_ddr.elf present." },
   { kind = "source", reference = "scripts/extract-qfil.sh", result = "firmware/g0245d-firmware.json carries the per-partition LBA table." },
   { kind = "device", reference = "scripts/linux/patch_v311.py", command = "fastboot flash boot auto/v311/boot.img && fastboot reboot; photo of the on-screen trace ring", revision = "eebf337e89a70e511ecb0376b531da8b4b699e11", result = "devfs_mount completes once the SHA-256 in vm_kernel_addrhash_internal is replaced by an integer mix; the trace advances 74 lines past v304's dm kalloc freeze." },
   { kind = "device", reference = "scripts/linux/patch_v320.py", command = "fastboot flash boot auto/v320/boot.img && fastboot reboot; photo of the on-screen trace ring", revision = "eebf337e89a70e511ecb0376b531da8b4b699e11", result = "devfs_kernel_mount returns 0, siginit / utaskbootstrap / mountroot_post_hook complete, bsd_init returns (v248 bsd init done)." },
-  { kind = "device", reference = "scripts/linux/patch_v320.py", command = "fastboot flash boot auto/v320/boot.img && fastboot reboot; read the final heartbeat and label", revision = "eebf337e89a70e511ecb0376b531da8b4b699e11", result = "PID1 exec returns 0 (v318 execve ret 0) after mdevstrategy served a 4096-byte read from the mockfs memory disk." },
+  { kind = "device", reference = "scripts/linux/patch_v320.py", command = "fastboot flash boot auto/v320/boot.img && fastboot reboot; read the final heartbeat and label", revision = "eebf337e89a70e511ecb0376b531da8b4b699e11", result = "mdevstrategy serves a 4096-byte read from the mockfs memory disk (v313 read virt, v314 biodone ok) before exec runs." },
+  { kind = "device", reference = "scripts/linux/patch_v329.py", command = "fastboot flash boot auto/v329/boot.img && fastboot reboot; photo of the trace ring", revision = "9def9a981e9e15a45680c5bf690659b7f165d290", result = "v329 pan i 2 / v329 pan err 8 / 'Process 1 exec of /sbin/launchd failed, errno 8' prove the exec result was ENOEXEC, correcting the earlier v320-based reading." },
+  { kind = "device", reference = "scripts/linux/patch_v330.py", command = "fastboot flash boot auto/v330/boot.img && fastboot reboot; photo of the trace ring", revision = "9def9a981e9e15a45680c5bf690659b7f165d290", result = "with the rebuilt Mach-O the ENOEXEC disappears; the failure moves to v328 far 0x1000 plus repeated ESR_EC 0x25, i.e. the scratch-page copyout." },
 ]
 [[area]]
 id = "display"
