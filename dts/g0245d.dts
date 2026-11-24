@@ -155,3 +155,21 @@
 //   Stage 3: &dsi0, &mdp, &blsp2_i2c6 (Mdp5 + BlspI2c + panel/touch)
 //   Stage 4: &gpu, &adreno_smmu     (Adreno530)
 //   Stage 5: &pcie*                 (QCA6174 Wi-Fi)
+
+// g0245d v321 (2026-11-24): Stage 2 storage bring-up.  The SoC dtsi ships
+// every peripheral disabled, and devicetree.py only exports nodes that are
+// enabled() AND carry unixnu,adt-name, so without this override no `ufshc`
+// IOPlatformDevice nub exists and NativeUfs8996::probe() is never called.
+// Verified binding: msm8996.dtsi ufshc@624000 (reg 0x2500, GIC SPI 265),
+// ufsphy@627000 (qcom,ufs-phy-qmp-14nm, reg 0xda8); stock board.dtb from the
+// QFIL package carries the same geometry (jedec,ufs-1.1 / qcom,ufs-phy-qmp-14nm).
+// g0245d v322 (2026-11-24): TEMPORARILY DISABLED for a single-variable
+// experiment.  With these two lines enabled (v321) the kernel panics inside
+// PE_init_iokit right after "v233 root nub init" and drops into the debugger,
+// i.e. inside IOPlatformExpertDevice::init -> IODeviceTreeAlloc while it walks
+// the ADT that now carries the ufshc/ufsphy nodes.  Everything else in v321
+// (driver archive, force_load, NATIVE_AES off) stays identical, so this build
+// isolates "ADT node present" as the only changed input.
+// Re-enable once the offending property is identified.
+//&ufshc  { status = "okay"; };
+//&ufsphy { status = "okay"; };

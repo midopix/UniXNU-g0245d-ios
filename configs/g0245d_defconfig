@@ -11,7 +11,20 @@ CONFIG_XNU_CRYPTO_BOOTSTRAP="prelinked"
 # CONFIG_XNU_NATIVE_LEGACY_DISPLAY is not set (needs GopFramebuffer + firmware FB)
 # Secondary CPU bring-up: enable after the GIC 3-cell specifier check passes.
 # CONFIG_XNU_ARMCPU_SECONDARY is not set
-# CONFIG_XNU_BUILD_ARCHIVES is not set    (enable with the first native driver)
+# g0245d v321 (2026-11-24): Stage 2 storage.  BUILD_ARCHIVES lets
+# scripts/unixnu/kernel.py run the [kernel].archives recipes, and
+# EXTRA_LD_ARCHIVES force-loads the resulting IOKit driver so its
+# NativeUfs8996 class is registered before IOKit matches personalities.
+# Do NOT set CONFIG_XNU_NATIVE_UFS: build-xnu-4k-baseline.sh hardcodes
+# UFS_ARCHIVE=$ROOT/build/sheng-ufs/libShengUfs.a for that switch (the SM8550
+# component), and its `test -f` would fail here.
+# g0245d v323 (2026-11-24): bisect step. Turn archive building and the UFS
+# force_load OFF so this build carries no native-driver code at all; it is the
+# closest possible configuration to the working v320 image.
+# CONFIG_XNU_BUILD_ARCHIVES is not set
+# Empty string, NOT "is not set": the boolean parser turns False into the
+# literal "0" and the linker then receives a bare "0" as an input file.
+CONFIG_XNU_EXTRA_LD_ARCHIVES=""
 # g0245d v289/v290: mockfs memory root (offline executable-root fixture).
 # Requires XNU_ARMCPU=y + XNU_SOURCE_PTHREAD=y (both set above).
 # Drives archive-07-build-mockfs-fixture.py -> libmockfs_fixture.a
@@ -20,3 +33,10 @@ CONFIG_XNU_CRYPTO_BOOTSTRAP="prelinked"
 # "# CONFIG_XNU_SOURCE_MOCKFS is not set".  Verify the generated work/.config
 # ends with CONFIG_XNU_SOURCE_MOCKFS=y after "unixnu defconfig".
 CONFIG_XNU_SOURCE_MOCKFS=y
+
+# g0245d v321 (2026-11-24): SoftwareAES derives from IOKit's IOAESAccelerator,
+# which only exists in the real iOS prelinked kext closure; rebuilding the
+# archive here resolves the vtable to undefined symbols and the kernel link
+# fails.  The arch fragment turns it on by default, so override it last.  AES
+# comes from CONFIG_XNU_SOURCE_CORECRYPTO14 (prelinked bootstrap) instead.
+# CONFIG_XNU_NATIVE_AES is not set

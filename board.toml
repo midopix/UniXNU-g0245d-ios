@@ -33,6 +33,19 @@ config_fragments = ["arch:configs/common.config", "soc:configs/msm8996.config", 
 # target xnu-10063.141.1, so only the device-local rebased series is selected.
 # The original 10063 diagnostic patches are preserved in patches/xnu-10063-backup/.
 patch_series = ["device:patches/xnu/series"]
+# g0245d v321 (2026-11-24): explicit archive list.  archive_plan() in
+# scripts/unixnu/kernel.py raises "archives needs component entries for: ..."
+# unless EVERY selected component with a kernel build recipe appears here, so
+# the list mirrors [components].include in dependency order and ends with the
+# new storage driver.  The driver archive is force-loaded separately through
+# CONFIG_XNU_EXTRA_LD_ARCHIVES in configs/g0245d_defconfig.
+archives = [
+  "component:ArmDTPlatform",
+  "component:ArmCpu",
+  "component:XnuPrelink",
+  "component:DarwinBoot",
+  "component:NativeUfs8996",
+]
 
 [firmware]
 # Mu-Silicium checkout with an msm8996 platform package. Replace with the
@@ -129,7 +142,7 @@ include_dirs = ["soc:dts"]
 # Stage 1 minimal set (see README): platform, CPU, crypto, prelink, loader.
 # No SM8550-specific components (ShengUfs/Adreno740/...) are selected:
 # MSM8996 needs NativeUfs8996 / Adreno530 / Mdp5 / BlspI2c components first.
-include = ["ArmDTPlatform", "ArmCpu", "SoftwareAES", "XnuPrelink", "DarwinBoot"]
+include = ["ArmDTPlatform", "ArmCpu", "XnuPrelink", "DarwinBoot", "NativeUfs8996"]
 
 [adt]
 
