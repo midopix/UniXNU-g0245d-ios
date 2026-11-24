@@ -2,7 +2,7 @@
 """Make the xnu work tree host-independent: doconf's interpreter.
 
 The consolidated patches were generated on a machine whose csh lives at
-/home/myth/.workbuddy/binaries/gitlocal/bin/tcsh, and that absolute path
+$HOME/.workbuddy/binaries/gitlocal/bin/tcsh, and that absolute path
 travelled into them.  On any other host the interpreter does not exist, so
 make reports
 

@@ -20,7 +20,7 @@ index 222158a..b4dda64 100755
 +++ b/SETUP/config/doconf
 @@ -1,4 +1,4 @@
 -#!/bin/csh -f
-+#!/home/myth/.workbuddy/binaries/gitlocal/bin/tcsh -f
++#!$HOME/.workbuddy/binaries/gitlocal/bin/tcsh -f
  set path = ($path .)
  ######################################################################
  # HISTORY
