@@ -196,10 +196,12 @@ evidence = [
 
 [[area]]
 id = "storage"
-status = "planned"
+status = "implemented"
 components = []
 paths = [
   "scripts/extract-qfil.sh",
+  "scripts/linux/patch_v311.py",
+  "scripts/linux/patch_v320.py",
   "board.toml",
 ]
 inputs = [
@@ -212,24 +214,32 @@ configuration = [
 ]
 procedure = [
   "Implement NativeUfs8996 (UFS 2.0 register set, not ShengUfs); then verify capacity, GPT and known blocks.",
+  "Interim path for bring-up: CONFIG_XNU_SOURCE_MOCKFS=y gives the kernel an in-memory root (patch_v289 mdevadd, rd=md0), so mount root and PID1 exec can be exercised before any storage driver exists.",
 ]
 findings = [
-  "Collect the first link-up and command-completion observation.",
+  "2026-11-24 device observation: devfs_kernel_mount returns 0 and bsd_init completes (v303 mc vfs ret 0 -> v300 dkm km ret 0 -> v300 post devfs -> siginit / utaskbootstrap / mountroot_post_hook done -> v248 bsd init done).",
+  "mdevstrategy serves a 4096-byte read at blkoff 0 from the mockfs memory disk (v312 devid 0 / count 4096 / bufmap ok / mdflags 1 / v313 read virt / v314 biodone ok).",
+  "PID1 exec of /sbin/launchd returns 0 (v318 execve ret 0) with the 56-byte synthetic Mach-O that patch_v289 places in mockfs; a real launchd still needs a real root volume.",
+  "The UFS 2.0 driver (NativeUfs8996) still does not exist, so no on-device UFS link-up, capacity or GPT read has been observed.",
 ]
 completion = [
   "Host: register, clock, link and SMMU facts match the board inventory. Reads: SCSI capacity, GPT and known blocks are correct; OS/SystemOS windows stay within userdata. Root: the configured volume mounts and launchd starts.",
 ]
 limits = [
   "No UFS 2.0 driver exists in the UniXNU catalog; this is the largest stage 2 component.",
+  "The root volume that mounted on 2026-11-24 is mockfs (RAM), not UFS; the launchd it execs is a 56-byte synthetic Mach-O, not the real binary.",
 ]
 next_action = [
   "Port the UFS 2.0 init sequence from the stock kernel driver; inventory clocks/resets from the QFIL GCC table; parse gpt_main*.bin to confirm the on-device GPT matches the rawprogram extents.",
+  "Replace the mockfs fixture with the real payload root once NativeUfs8996 lands, then re-check that PID1 execs the real launchd.",
 ]
 evidence = [
   { kind = "source", reference = "board.toml", result = "rawprogram_unsparse*.xml and gpt_main*.bin parsed; firehose programmer prog_ufs_firehose_8996_ddr.elf present." },
   { kind = "source", reference = "scripts/extract-qfil.sh", result = "firmware/g0245d-firmware.json carries the per-partition LBA table." },
+  { kind = "device", reference = "scripts/linux/patch_v311.py", command = "fastboot flash boot auto/v311/boot.img && fastboot reboot; photo of the on-screen trace ring", revision = "eebf337e89a70e511ecb0376b531da8b4b699e11", result = "devfs_mount completes once the SHA-256 in vm_kernel_addrhash_internal is replaced by an integer mix; the trace advances 74 lines past v304's dm kalloc freeze." },
+  { kind = "device", reference = "scripts/linux/patch_v320.py", command = "fastboot flash boot auto/v320/boot.img && fastboot reboot; photo of the on-screen trace ring", revision = "eebf337e89a70e511ecb0376b531da8b4b699e11", result = "devfs_kernel_mount returns 0, siginit / utaskbootstrap / mountroot_post_hook complete, bsd_init returns (v248 bsd init done)." },
+  { kind = "device", reference = "scripts/linux/patch_v320.py", command = "fastboot flash boot auto/v320/boot.img && fastboot reboot; read the final heartbeat and label", revision = "eebf337e89a70e511ecb0376b531da8b4b699e11", result = "PID1 exec returns 0 (v318 execve ret 0) after mdevstrategy served a 4096-byte read from the mockfs memory disk." },
 ]
-
 [[area]]
 id = "display"
 status = "planned"
