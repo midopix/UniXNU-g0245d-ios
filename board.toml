@@ -81,6 +81,15 @@ dram_size = "0x100000000"
 [payload.adt]
 chip_id = "820"
 unique_chip_id = "required"
+# 2026-11-26 (C0): APFS root volume of the 16.5/20F66 OS image, read with
+# apfsutil from the OS window the userdata image carries:
+#   container 925320B4-41DA-4F74-5782-B8E2914A7C6A
+#   volume 0  97A3EB1A-5218-4936-BC85-9574EC2C8CC9  role=System
+#             name SydneyF20F66.D22D221OS
+# This is the same UUID fs-hierarchy.txt lists as "/{97a3eb1a-...}/", i.e. the
+# volume /sbin/launchd and /usr/lib/dyld were extracted from.  The SystemOS
+# window carries 556915A0-5005-4DE5-B3E4-6B489DBB4C1A (SydneyF20F66.D22D221SystemCryptex).
+root_match_volume_uuid = "97A3EB1A-5218-4936-BC85-9574EC2C8CC9"
 
 [bootimg]
 # cont_splash_region, verbatim from the stock DTS:
