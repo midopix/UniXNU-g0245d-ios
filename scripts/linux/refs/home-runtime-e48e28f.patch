@@ -1,0 +1,249 @@
+diff --git a/components.toml b/components.toml
+index 585edba..2b21b4c 100644
+--- a/components.toml
++++ b/components.toml
+@@ -570,3 +570,22 @@ runtime_identifiers = ["AppleBaseband", "AppleBasebandPCIControl", "AppleBaseban
+ build_stage = "kernel"
+ build = ["build-qcom-baseband.py"]
+ outputs = ["build/qcom-baseband/libQcomBaseband.a"]
++
++[[component]]
++id = "NativeUfs8996"
++kind = "driver"
++function = "Qualcomm MSM8996 UFS register probe"
++scope = "board"
++repository = "https://github.com/midopix/UniXNU-g0245d-ios.git"
++revision = "310e0fb075ca4899892833872b4169fdd22afdb5"
++path = "drivers/NativeUfs8996"
++hardware = ["MSM8996 UFS 2.0"]
++os_abi = ["ios-16.5-20F66"]
++board_dependencies = []
++verified_devices = ["g0245d"]
++dependencies = []
++source_files = ["NativeUfs8996.cpp"]
++runtime_identifiers = ["NativeUfs8996", "NativeUfs8996.cpp"]
++build_stage = "kernel"
++build = ["build-arm-driver.py", "NativeUfs8996"]
++outputs = ["build/nativeufs8996/libNativeUfs8996.a"]
+diff --git a/scripts/build-corecrypto-14.py b/scripts/build-corecrypto-14.py
+index 54c5791..9c41818 100755
+--- a/scripts/build-corecrypto-14.py
++++ b/scripts/build-corecrypto-14.py
+@@ -79,7 +79,7 @@ command = ['xcrun', '--sdk', 'iphoneos', 'clang', '-target', TRIPLE, '-isysroot'
+            '-fno-vectorize', '-fno-slp-vectorize', '-mno-implicit-float',
+            '-DKERNEL=1', '-DKERNEL_PRIVATE=1', '-DBUILDKERNEL=1', '-DCC_USE_ASM=0', '-DNDEBUG=1',
+            '-DCC_DISABLE_RSAKEYGEN=1', '-Wno-deprecated-declarations', '-Wno-incompatible-library-redeclaration',
+-           '-I' + str(include.parent), '-I' + str(framework / 'PrivateHeaders'), '-I' + str(framework / 'Headers')]
++           '-I' + str(include.parent), '-I' + str(framework / 'PrivateHeaders'), '-I' + str(framework / 'Headers'), '-I' + str(ROOT / '.cache/fakeroot/usr/include')]
+ for folder in sorted({h.parent for h in SOURCE.rglob('*.h') if 'test' not in str(h.relative_to(SOURCE)).lower()}):
+     command.extend(['-I', str(folder)])
+ variant = '-namespaced' if args.namespace else ''
+diff --git a/scripts/build-libpthread-kernel.py b/scripts/build-libpthread-kernel.py
+index 08d9f68..3d87d9a 100644
+--- a/scripts/build-libpthread-kernel.py
++++ b/scripts/build-libpthread-kernel.py
+@@ -60,6 +60,7 @@ def compile_one(source, destination, namespace=None):
+                    '-D__PTHREAD_EXPOSE_INTERNALS__=1', '-DABSOLUTETIME_SCALAR_TYPE=1', '-DNEEDS_SCHED_CALL_T=1',
+                    '-I', str(SOURCE / 'private'), '-I', str(SOURCE / 'include'), '-I', str(SOURCE),
+                    '-I', str(framework / 'PrivateHeaders'), '-I', str(framework / 'Headers'),
++                   '-I', str(ROOT / '.cache/fakeroot/usr/include'),
+                    '-Wno-deprecated-declarations', '-c', str(source), '-o', str(destination)]
+     if namespace:
+         command += ['-include', str(namespace)]
+diff --git a/scripts/build-xnu-4k-baseline.sh b/scripts/build-xnu-4k-baseline.sh
+index 394299b..c016970 100755
+--- a/scripts/build-xnu-4k-baseline.sh
++++ b/scripts/build-xnu-4k-baseline.sh
+@@ -832,6 +832,9 @@ if not stamp.exists() or stamp.read_text() != identity:
+     stamp.write_text(identity)
+ PY
+ EXTRA_CFLAGS="$EXTRA_CFLAGS -DXNU_BOOT_PROGRESS=$BOOT_PROGRESS"
++if [ "$BOOTSTRAP" = 1 ]; then
++  EXTRA_MAKE_ARGS+=("BUILD_JSON_COMPILATION_DATABASE=1")
++fi
+ make -C .cache/xnu-work "${XNU_BUILD_TARGET:-build}" SDKROOT="${XNU_SDKROOT:-iphoneos}" ARCH_CONFIGS=ARM64 \
+   MACHINE_CONFIGS=BCM2837 KERNEL_CONFIGS=DEVELOPMENT \
+   ARCH_STRING_FOR_CURRENT_MACHINE_CONFIG="$XNU_ARCH_STRING" LARGE_MEMORY_DEFINE=-UARM_LARGE_MEMORY \
+diff --git a/scripts/sync-devices.py b/scripts/sync-devices.py
+index e331ec4..30f16da 100644
+--- a/scripts/sync-devices.py
++++ b/scripts/sync-devices.py
+@@ -52,9 +52,19 @@ class GitHub:
+                     raise ValueError('GitHub response exceeds 32 MiB')
+                 return json.loads(body)
+             except HTTPError as error:
+-                if error.code not in (429, 500, 502, 503, 504) or attempt == 3:
++                # GitHub reports both primary and secondary rate limits as 429, but abuse/secondary
++                # limits (and search API limits) can also surface as 403. Retry those with backoff;
++                # a transient throttle must not abort the whole scheduled catalog sync.
++                if error.code not in (403, 429, 500, 502, 503, 504) or attempt == 3:
+                     raise
+-                time.sleep(2 ** attempt)
++                retry_after = error.headers.get('Retry-After') if error.headers else None
++                if retry_after:
++                    try:
++                        time.sleep(max(2 ** attempt, int(retry_after)))
++                    except (TypeError, ValueError):
++                        time.sleep(2 ** attempt)
++                else:
++                    time.sleep(2 ** attempt)
+ 
+     def search(self, query):
+         found = []
+@@ -64,11 +74,12 @@ class GitHub:
+             # The search API enumerates at most 1000 results, so a broader query is capped there, not an error: the
+             # authoritative discovery is the bounded topic:unixnu and org:UniXNU queries, which a compliant device
+             # repository is required to satisfy (the unixnu topic), and the name/description query only supplements them.
+-            if result.get('incomplete_results'):
+-                raise ValueError(f'GitHub returned an incomplete search: {query}')
+-            items = result['items']
++            # A broad query can now exceed 1000 matches; GitHub then flags incomplete_results. Treat that as a
++            # normal cap (stop paging for this query) rather than a hard failure, otherwise a growing catalog
++            # makes the whole scheduled sync exit 1 forever.
++            items = result.get('items') or []
+             found.extend(item['full_name'] for item in items)
+-            if len(items) < 100:
++            if result.get('incomplete_results') or len(items) < 100:
+                 return found
+         return found
+ 
+diff --git a/scripts/unixnu/devicetree.py b/scripts/unixnu/devicetree.py
+index 3dde210..56eab2e 100644
+--- a/scripts/unixnu/devicetree.py
++++ b/scripts/unixnu/devicetree.py
+@@ -190,15 +190,21 @@ ARM_IO_ALIGN = 1 << 24
+ 
+ 
+ def arm_io_window(hardware):
+-    """The arm-io window: child registers are offsets from its base, which XNU reads as the SoC base and requires to be non-zero."""
++    """The arm-io window: child registers are offsets from its base.
++
++    XNU reads the SoC base from arm-io ranges parent address
++    (pe_arm_get_soc_base_phys), and 0 is legal there: MSM8996 keeps
++    UFS at 0x624000, BLSP1 at 0x75xxxx and MDSS at 0x900000, so the
++    window starts at physical 0 and every child offset is already an
++    absolute address. The old non-zero assertion treated a zero window
++    as no window, which is only true when the entry is missing.
++    """
+     spans = [(physical(entry.parent, address, size), size) for entry in hardware if 'reg' in entry.properties
+              for address, size in registers(entry)]
+     if not spans:
+         return ARM_IO_ALIGN, ARM_IO_ALIGN
+     base = min(address for address, _ in spans) & ~(ARM_IO_ALIGN - 1)
+     top = -(-max(address + size for address, size in spans) // ARM_IO_ALIGN) * ARM_IO_ALIGN
+-    if not base:
+-        raise Error('arm-io needs a non-zero base: an exported register lies below 16 MiB')
+     return base, top - base
+ 
+ 
+diff --git a/scripts/unixnu/payload.py b/scripts/unixnu/payload.py
+index 1f76eb2..5410e21 100644
+--- a/scripts/unixnu/payload.py
++++ b/scripts/unixnu/payload.py
+@@ -13,6 +13,7 @@ import json
+ import os
+ import re
+ import shutil
++import struct
+ import tempfile
+ from pathlib import Path
+ 
+@@ -89,6 +90,51 @@ def check_native_root(kernel, arguments, vmm_present=False):
+         raise Error('the native UFS root kernel lacks the linked sheng PMGR integration')
+ 
+ 
++def check_volume(image):
++    """Refuse a BPB whose declared FAT type disagrees with its cluster count.
++
++    EDK2 (FatPkg) chooses the type from the cluster count, not from the BPB
++    strings, so a volume written as FAT32 with fewer than 65525 clusters is
++    read as FAT16 with a zero FAT size and fails to mount.
++    """
++    raw = Path(image).read_bytes()
++    if len(raw) < 512 or raw[510:512] != b'\x55\xaa':
++        raise Error(f'payload volume {image} has no 0x55aa boot signature')
++    bps, = struct.unpack_from('<H', raw, 0x0b)
++    spc = raw[0x0d]
++    reserved, = struct.unpack_from('<H', raw, 0x0e)
++    fats = raw[0x10]
++    root_entries, = struct.unpack_from('<H', raw, 0x11)
++    total16, = struct.unpack_from('<H', raw, 0x13)
++    fat16, = struct.unpack_from('<H', raw, 0x16)
++    total32, = struct.unpack_from('<I', raw, 0x20)
++    fat32, = struct.unpack_from('<I', raw, 0x24)
++    if bps == 0 or spc == 0 or fats == 0:
++        raise Error(f'payload volume {image} has an empty BPB')
++    total = total16 or total32
++    root_sectors = (root_entries * 32 + bps - 1) // bps
++    if fat16 and total16:
++        data = total - reserved - fats * fat16 - root_sectors
++        clusters = data // spc
++        fat_size = fat16
++        width = 2
++        kind = 12 if clusters < 4085 else 16
++    else:
++        data = total - reserved - fats * fat32
++        clusters = data // spc
++        fat_size = fat32
++        width = 4
++        kind = 32
++    entries = fat_size * bps // width
++    if kind == 32 and clusters < 65525:
++        raise Error(f'payload volume {image} claims FAT32 but has only {clusters} clusters')
++    if kind != 32 and clusters >= 65525:
++        raise Error(f'payload volume {image} claims FAT{kind} but has {clusters} clusters')
++    if entries < clusters + 2:
++        raise Error(f'payload volume {image} FAT{kind} holds {entries} entries for {clusters} clusters')
++    log(f'payload: volume FAT{kind}, {clusters} clusters, {entries} FAT entries')
++
++
+ def write_volume(stage, image, label, size_mib):
+     """Publish only a FAT volume whose complete file set was accepted by mtools."""
+     for tool_name in ('mformat', 'mcopy'):
+@@ -102,7 +148,9 @@ def write_volume(stage, image, label, size_mib):
+     # mtools. A percentage of logical file sizes is not a filesystem limit.
+     with tempfile.TemporaryDirectory(prefix='.payload-', dir=image.parent) as scratch:
+         candidate = Path(scratch) / image.name
+-        run(['mformat', '-C', '-F', '-T', str(sectors), '-v', label, '-N', '53484e47', '-i', candidate, '::'], env=env, capture=True)
++        run(['mformat', '-C', '-T', str(sectors), '-h', '16', '-s', '63', '-c', '1',
++             '-r', '512', '-v', label, '-N', '53484e47', '-i', candidate], env=env, capture=True)
++        check_volume(candidate)
+         try:
+             for entry in sorted(stage.iterdir()):
+                 run(['mcopy', '-i', candidate, '-s', '-Q', '-m', entry, '::/'], env=env, capture=True)
+@@ -246,13 +294,9 @@ def build(ctx, kernel=None):
+                 raise Error(f'malformed text fixup in board.toml [payload] text_fixups: {fixup}')
+             command += ['--text-fixup', fixup]
+         run(command, cwd=ctx.tree, env=dict(os.environ, UNIXNU_UEFI=str(ctx.uefi or '')), log_file=ctx.logs / 'payload-adt.log')
+-    theme = (getattr(args, 'boot_menu_theme', None) or os.environ.get('UNIXNU_BOOT_MENU_THEME') or spec.get('boot_menu_theme') or 'default').lower()
+-    if theme not in ('default', 'oc-like'):
+-        raise Error(f'boot_menu_theme must be default or oc-like, got {theme!r}')
+-    ui_block = f'[ui]\ntheme = "{theme}"\n' if theme != 'default' else ''
+     initrd = 'initrd = "Payloads/scratch-data.img"\n' if data else ''
+     loader = '' if spec.get('loader', 'firmware') == 'firmware' else '[[driver]]\npath = "Payloads/DarwinBoot.efi"\n'
+-    config = (f'version = 1\n[boot]\ntimeout = {spec.get("timeout", 3)}\ndefault = "xnu"\n{ui_block}[kits]\nautoload = false\n{loader}'
++    config = (f'version = 1\n[boot]\ntimeout = {spec.get("timeout", 3)}\ndefault = "xnu"\n[kits]\nautoload = false\n{loader}'
+               f'[[entry]]\nid = "xnu"\ntitle = "{spec.get("title", "UniXNU")}"\ntype = "xnu"\npath = "Payloads/kernel.macho"\n{initrd}'
+               f'args = "{line}"\n')
+     install = spec.get('install')
+@@ -273,6 +317,20 @@ def build(ctx, kernel=None):
+     if spec.get('tools'):
+         config += ('[[entry]]\nid = "tools"\ntitle = "Tools"\ntype = "action"\naction = "tools"\n')
+     (stage / 'EFI/UniXNU/unixnu.toml').write_text(config)
++
++    # g0245d v385b: the on-device FAT reader stops reading 18 MiB into the
++    # ramdisk volume (v382 kernel 18,096,280 B booted fine; v383/v384/v385
++    # kernels >= 18.9 MB push unixnu.toml past the limit, TomlParse reads
++    # garbage and the bootloader falls back to the built-in menu, so the
++    # kernel never runs; see HANDOFF 14.55).  Every symbol-based payload
++    # patch has already run by this point, and the symbol table is ~5.9 MB,
++    # so strip the staged kernel before the volume is built.  The unstripped
++    # image stays in build/xnu/ios-obj for debugging.
++    staged_kernel = payloads / 'kernel.macho'
++    if staged_kernel.stat().st_size > 18_800_000:
++        run(['strip', str(staged_kernel)], env=dict(os.environ, UNIXNU_UEFI=str(ctx.uefi or '')),
++            log_file=ctx.logs / 'payload-strip.log')
++        log(f'payload: staged kernel stripped to {staged_kernel.stat().st_size} bytes')
+     for path in [stage, *stage.rglob('*')]:
+         os.utime(path, (EPOCH, EPOCH))
+     size = int(spec.get('size_mib', 192))

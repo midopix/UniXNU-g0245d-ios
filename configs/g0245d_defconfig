@@ -21,10 +21,9 @@ CONFIG_XNU_CRYPTO_BOOTSTRAP="prelinked"
 # g0245d v323 (2026-11-24): bisect step. Turn archive building and the UFS
 # force_load OFF so this build carries no native-driver code at all; it is the
 # closest possible configuration to the working v320 image.
-# CONFIG_XNU_BUILD_ARCHIVES is not set
+CONFIG_XNU_BUILD_ARCHIVES=y
 # Empty string, NOT "is not set": the boolean parser turns False into the
 # literal "0" and the linker then receives a bare "0" as an input file.
-CONFIG_XNU_EXTRA_LD_ARCHIVES=""
 # g0245d v289/v290: mockfs memory root (offline executable-root fixture).
 # Requires XNU_ARMCPU=y + XNU_SOURCE_PTHREAD=y (both set above).
 # Drives archive-07-build-mockfs-fixture.py -> libmockfs_fixture.a
