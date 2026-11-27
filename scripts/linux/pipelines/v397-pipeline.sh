@@ -33,6 +33,7 @@ XNU_WORK=$W python3 "$V365_DEV/scripts/linux/patch_v389.py" || exit 1
 XNU_WORK=$W G0245D_DEV="$V365_DEV" python3 "$V365_DEV/scripts/linux/patch_v390.py" || exit 1
 XNU_WORK=$W G0245D_DEV="$V365_DEV" python3 "$V365_DEV/scripts/linux/patch_v394.py" || exit 1
 XNU_WORK=$W G0245D_DEV="$V365_DEV" python3 "$V365_DEV/scripts/linux/patch_v395.py" || exit 1
+XNU_WORK=$W G0245D_DEV="$V365_DEV" python3 "$V365_DEV/scripts/linux/patch_v396.py" || exit 1
 XNU_WORK=$W G0245D_DEV="$V365_DEV" python3 "$V365_DEV/scripts/linux/patch_v397.py" || exit 1
 # mockfs is NOT compiled by the kernel build: the kernel links
 # build/mockfs-fixture/libmockfs_fixture.a, which scripts/build-mockfs-fixture.py
