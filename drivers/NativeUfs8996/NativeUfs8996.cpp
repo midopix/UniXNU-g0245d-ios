@@ -50,6 +50,12 @@ volatile uint32_t ufs8996_uic_ready  = 0;
 volatile uint32_t ufs8996_uic_spins  = 0;
 volatile uint32_t ufs8996_uic_result = 0;
 volatile uint32_t ufs8996_uic_hcs    = 0;
+// g0245d v392: UIC layer error-code snapshot.
+volatile uint32_t ufs8996_err_pa  = 0;
+volatile uint32_t ufs8996_err_dl  = 0;
+volatile uint32_t ufs8996_err_nl  = 0;
+volatile uint32_t ufs8996_err_tl  = 0;
+volatile uint32_t ufs8996_err_dme = 0;
 
 namespace {
 const char *const kCompatible[] = {
@@ -283,6 +289,15 @@ bool NativeUfs8996::start(IOService *provider)
     }
   }
   ufs8996_uic_hcs = read32(fBase, Ufs8996::REG_HCS);
+
+  /* g0245d v392: q=01 is only a generic DME failure.  Decode which
+   * UniPro layer reported it, without issuing another UIC command. */
+  ufs8996_err_pa  = read32(fBase, Ufs8996::REG_UIC_ERR_PA);
+  ufs8996_err_dl  = read32(fBase, Ufs8996::REG_UIC_ERR_DL);
+  ufs8996_err_nl  = read32(fBase, Ufs8996::REG_UIC_ERR_NL);
+  ufs8996_err_tl  = read32(fBase, Ufs8996::REG_UIC_ERR_TL);
+  ufs8996_err_dme = read32(fBase, Ufs8996::REG_UIC_ERR_DME);
+
   ufs8996_step = 7;
   g0245d_trace_u("v391 ls", ufs8996_uic_result);
   return true;

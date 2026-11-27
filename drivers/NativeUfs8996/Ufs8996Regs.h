@@ -43,6 +43,14 @@ constexpr unsigned REG_UICCMDARG3 = 0x9c;
 constexpr unsigned IS_UCCS        = (1u << 10);  // command completion
 constexpr unsigned UIC_DME_LINK_STARTUP = 0x16u;
 
+// UIC layer error-code registers (g0245d v392; read-only decode of
+// the v391 q=01 result; offsets from msm-3.18 scsi/ufshci.h).
+constexpr unsigned REG_UIC_ERR_PA  = 0x38;
+constexpr unsigned REG_UIC_ERR_DL  = 0x3c;
+constexpr unsigned REG_UIC_ERR_NL  = 0x40;
+constexpr unsigned REG_UIC_ERR_TL  = 0x44;
+constexpr unsigned REG_UIC_ERR_DME = 0x48;
+
 constexpr unsigned VER_MAJOR_SHIFT = 16;
 constexpr unsigned VER_MINOR_SHIFT = 0;
 constexpr uint32_t VER_FIELD_MASK  = 0xffffu;
