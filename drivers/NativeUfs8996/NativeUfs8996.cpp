@@ -215,10 +215,14 @@ static DeviceDescriptorResult v394QueryDevice(
   // g0245d v396: Linux uses the same value for UPIU task tag and
   // doorbell slot (lrbp->task_tag = tag; doorbell = 1 << tag).
   // v395 had tag=1 with doorbell slot 0; make both 0.
-  v395_ucd[0] = 0u;                  // task tag = doorbell slot 0
-  v395_ucd[1] = 0u;                  // LUN
-  v395_ucd[2] = 0u;                  // flags: no data
-  v395_ucd[3] = 0x16u;               // QUERY REQUEST
+  // g0245d v400: Linux UPIU_HEADER_DWORD and EDK2 UTP_QUERY_REQ_UPIU
+  // both put the transaction type in byte 0 and the task tag in byte 3.
+  // v394-v399 had them reversed, so the controller saw NOP_OUT (0x00)
+  // instead of QUERY_REQ (0x16), returned OCS=0 and an empty response.
+  v395_ucd[0] = 0x16u;               // TRANSACTION_TYPE_QUERY_REQUEST
+  v395_ucd[1] = 0u;                  // flags: no data
+  v395_ucd[2] = 0u;                  // LUN
+  v395_ucd[3] = 0u;                  // task tag = doorbell slot 0
   // g0245d v398: Linux puts query_func in byte 2 of UPIU header
   // dword_1, i.e. UCD offset 6.  v394 put it at offset 5 (byte 1),
   // leaving the real query_func field = 0.  Offset 5 stays 0.
@@ -263,7 +267,7 @@ static DeviceDescriptorResult v394QueryDevice(
     // tell whether the controller had written OCS/response at all.
     out.ocs = (*reinterpret_cast<volatile uint32_t *>(utrd + 8)) & 0xfu;
     // g0245d v397: volatile byte reads forbid 32-bit merge (v394 fault).
-    out.response = v395_ucd[512 + 5];
+    out.response = v395_ucd[512 + 6];
     out.data_len =
         ((uint32_t)v395_ucd[512 + 10] << 8) | v395_ucd[512 + 11];
     out.bytes01 =
@@ -277,7 +281,7 @@ static DeviceDescriptorResult v394QueryDevice(
 
   out.ocs = (*reinterpret_cast<volatile uint32_t *>(utrd + 8)) & 0xfu;
   // g0245d v395: same no-merge rule for response bytes.
-  out.response = v395_ucd[512 + 5];
+  out.response = v395_ucd[512 + 6];
   out.data_len =
       ((uint32_t)v395_ucd[512 + 10] << 8) | v395_ucd[512 + 11];
   out.bytes01 =
