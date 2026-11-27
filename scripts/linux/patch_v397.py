@@ -96,7 +96,8 @@ else:
 
 # ------------------------------------------------------------- bsd_init.c
 bs = BSD.read_text(encoding="utf-8")
-if '"v397 o=0 r=00 a=0000 b=0000 w=0 d=00 s=9";' in bs:
+if any(('"v%s o=0 r=00 a=0000 b=0000 w=0 d=00 s=9";' % tag) in bs
+       for tag in ("397", "398")):
     print("patch_v397: bsdinit pinned row already relabelled -- skip")
 else:
     anchor = '    "v396 o=0 r=00 a=0000 b=0000 w=0 d=00 s=9";'
