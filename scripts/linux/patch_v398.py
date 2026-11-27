@@ -53,7 +53,7 @@ for f in (CPP, BSD):
 import re
 _bs = BSD.read_text(encoding="utf-8")
 _tags = re.findall(r'"v(\d{3}) o=0 r=00 a=0000 b=0000 w=0 d=00 s=9', _bs)
-if _tags and _tags[0] != "397":
+if not _tags or _tags[0] != "397":
     print("patch_v398: newer pinned row present -- skip entire patch")
     print("patch_v398: done")
     sys.exit(0)
@@ -101,7 +101,7 @@ else:
 bs = BSD.read_text(encoding="utf-8")
 import re
 row_tags = re.findall(r'"v(\d{3}) o=0 r=00 a=0000 b=0000 w=0 d=00 s=9', bs)
-if row_tags and row_tags[0] != "397":
+if not row_tags or row_tags[0] != "397":
     print("patch_v398: bsdinit pinned row already relabelled -- skip")
 else:
     anchor = '    "v397 o=0 r=00 a=0000 b=0000 w=0 d=00 s=9";'

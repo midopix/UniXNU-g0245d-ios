@@ -120,31 +120,35 @@ if "g0245d v396" not in bs:
     anchor = '    "v395 o=0 r=00 a=0000 b=0000 d=00 s=9";'
     n = bs.count(anchor)
     if n != 1:
-        sys.exit("patch_v396: v395 row anchor found %d times" % n)
-    bs = bs.replace(
-        anchor,
-        '    "v396 o=0 r=00 a=0000 b=0000 w=0 d=00 s=9";',
-        1,
-    )
-    # Shift field writes first: d 30/31 -> 34/35, s 35 -> 39.
-    # (Do this before inserting the w digit at 30 to avoid collisions.)
-    bs = bs.replace("\t\tv394_buf[30] =\n", "\t\tv394_buf[34] =\n", 1)
-    bs = bs.replace("\t\tv394_buf[31] =\n", "\t\tv394_buf[35] =\n", 1)
-    bs = bs.replace("\t\tv394_buf[35] = (ufs8996_step",
-                    "\t\tv394_buf[39] = (ufs8996_step", 1)
-    # Now insert the doorbell digit at index 30 (the 'w' field).
-    anchor = "\t\tv394_buf[34] =\n"
-    n = bs.count(anchor)
-    if n != 1:
-        sys.exit("patch_v396: shifted data-len write anchor found %d times" % n)
-    insert = """\t\t/* g0245d v396: doorbell readback digit (index 30). */
+        # v402 replaced the pinned-row fill block, so the "g0245d v396"
+        # marker comment is gone even though the patch is applied.  A
+        # missing v395 anchor therefore means "already relabelled".
+        print("patch_v396: v395 row anchor absent (row already newer) -- skip")
+    else:
+        bs = bs.replace(
+            anchor,
+            '    "v396 o=0 r=00 a=0000 b=0000 w=0 d=00 s=9";',
+            1,
+        )
+        # Shift field writes first: d 30/31 -> 34/35, s 35 -> 39.
+        # (Do this before inserting the w digit at 30 to avoid collisions.)
+        bs = bs.replace("\t\tv394_buf[30] =\n", "\t\tv394_buf[34] =\n", 1)
+        bs = bs.replace("\t\tv394_buf[31] =\n", "\t\tv394_buf[35] =\n", 1)
+        bs = bs.replace("\t\tv394_buf[35] = (ufs8996_step",
+                        "\t\tv394_buf[39] = (ufs8996_step", 1)
+        # Now insert the doorbell digit at index 30 (the 'w' field).
+        anchor = "\t\tv394_buf[34] =\n"
+        n = bs.count(anchor)
+        if n != 1:
+            sys.exit("patch_v396: shifted data-len write anchor found %d times" % n)
+        insert = """\t\t/* g0245d v396: doorbell readback digit (index 30). */
 \t\t{ extern volatile unsigned int ufs8996_query_doorbell;
 \t\t  v394_buf[30] = (ufs8996_query_doorbell < 16)
 \t\t      ? "0123456789abcdef"[ufs8996_query_doorbell] : '?'; }
 """
-    bs = bs.replace(anchor, insert + anchor, 1)
-    BSD.write_text(bs, encoding="utf-8")
-    print("patch_v396: bsdinit pinned row v396 + doorbell digit")
+        bs = bs.replace(anchor, insert + anchor, 1)
+        BSD.write_text(bs, encoding="utf-8")
+        print("patch_v396: bsdinit pinned row v396 + doorbell digit")
 else:
     print("patch_v396: bsd_init.c already patched -- skip")
 

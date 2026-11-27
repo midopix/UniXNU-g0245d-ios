@@ -64,13 +64,16 @@ else:
     anchor = '    "v400 o=0 r=00 a=0000 b=0000 w=0 d=00 s=9 p=0f4240 i=01";'
     n = bs.count(anchor)
     if n != 1:
-        sys.exit("patch_v401: v400 row anchor found %d times" % n)
-    bs = bs.replace(
-        anchor,
-        '    "v401 o=0 r=00 a=0000 b=0000 w=0 d=00 s=9 p=0f4240 i=01";',
-        1,
-    )
-    BSD.write_text(bs, encoding="utf-8")
-    print("patch_v401: bsdinit pinned row relabelled v401")
+        # Row is already in a newer format (v402 replaced the row layout),
+        # so the v400 anchor is gone even though v401 was applied.
+        print("patch_v401: v400 row anchor absent (row already newer) -- skip")
+    else:
+        bs = bs.replace(
+            anchor,
+            '    "v401 o=0 r=00 a=0000 b=0000 w=0 d=00 s=9 p=0f4240 i=01";',
+            1,
+        )
+        BSD.write_text(bs, encoding="utf-8")
+        print("patch_v401: bsdinit pinned row relabelled v401")
 
 print("patch_v401: done")

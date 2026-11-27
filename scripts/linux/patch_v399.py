@@ -85,7 +85,7 @@ else:
 bs = BSD.read_text(encoding="utf-8")
 import re
 row_tags = re.findall(r'"v(\d{3}) o=0 r=00 a=0000 b=0000 w=0 d=00 s=9', bs)
-if row_tags and row_tags[0] != "398":
+if not row_tags or row_tags[0] != "398":
     print("patch_v399: bsdinit row already extended -- skip")
 else:
     old = '    "v398 o=0 r=00 a=0000 b=0000 w=0 d=00 s=9";'

@@ -49,7 +49,7 @@ for f in (CPP, BSD):
 import re
 _bs = BSD.read_text(encoding="utf-8")
 _tags = re.findall(r'"v(\d{3}) o=0 r=00 a=0000 b=0000 w=0 d=00 s=9', _bs)
-if _tags and _tags[0] != "399":
+if not _tags or _tags[0] != "399":
     print("patch_v400: newer pinned row present -- skip entire patch")
     print("patch_v400: done")
     sys.exit(0)
