@@ -138,15 +138,18 @@ static void v404SsuWake(
         sys.exit("patch_v404: fDeviceInit trace anchor found %d times" % n)
     seq = seq_anchor + """    // g0245d v404: read bCurrentPowerMode, wake the device with SSU
     // (power condition ACTIVE) to W-LUN 0xD0, read it again.
-    v403FlagQuery(base, utrd, ucd, utrd_phys, ucd_phys,
-                  0x03u, 0x02u, &ufs8996_query_readresp, &v403_value);
-    ufs8996_query_pmbefore = v403_value & 0xffu;
-    g0245d_trace_u("v404 pmbefore", ufs8996_query_pmbefore);
-    v404SsuWake(base, utrd, ucd, utrd_phys, ucd_phys);
-    v403FlagQuery(base, utrd, ucd, utrd_phys, ucd_phys,
-                  0x03u, 0x02u, &ufs8996_query_readresp, &v403_value);
-    ufs8996_query_pm = v403_value & 0xffu;
-    g0245d_trace_u("v404 pm", ufs8996_query_pm);
+    {
+      uint32_t v404_value = 0;
+      v403FlagQuery(base, utrd, ucd, utrd_phys, ucd_phys,
+                    0x03u, 0x02u, &ufs8996_query_readresp, &v404_value);
+      ufs8996_query_pmbefore = v404_value & 0xffu;
+      g0245d_trace_u("v404 pmbefore", ufs8996_query_pmbefore);
+      v404SsuWake(base, utrd, ucd, utrd_phys, ucd_phys);
+      v403FlagQuery(base, utrd, ucd, utrd_phys, ucd_phys,
+                    0x03u, 0x02u, &ufs8996_query_readresp, &v404_value);
+      ufs8996_query_pm = v404_value & 0xffu;
+      g0245d_trace_u("v404 pm", ufs8996_query_pm);
+    }
 """
     src = src.replace(seq_anchor, seq, 1)
     CPP.write_text(src, encoding="utf-8")
