@@ -69,59 +69,62 @@ if '"v402 o=0 t=' in bs:
 else:
     n = bs.count(old_row)
     if n != 1:
-        sys.exit("patch_v402: v401 row anchor found %d times" % n)
-    bs = bs.replace(old_row, new_row, 1)
+        # Row is already in a newer format (v403+ relabelled it), so the
+        # v401 anchor is gone even though v402 was applied.
+        print("patch_v402: v401 row anchor absent (row already newer) -- skip")
+    else:
+        bs = bs.replace(old_row, new_row, 1)
 
-    pat = re.compile(
-        r"\t\tv394_buf\[7\] = \(ufs8996_query_ocs.*?"
-        r"ufs8996_query_is & 0xf\]; \}",
-        re.S,
-    )
-    if not pat.search(bs):
-        sys.exit("patch_v402: pinned-row fill block not found")
-    new_fill = """\t\t/* g0245d v402: response UPIU header dump on the pinned row. */
-\t\t{
-\t\t\textern volatile unsigned int ufs8996_query_ocs;
-\t\t\textern volatile unsigned int ufs8996_query_type;
-\t\t\textern volatile unsigned int ufs8996_query_b45;
-\t\t\textern volatile unsigned int ufs8996_query_resp;
-\t\t\textern volatile unsigned int ufs8996_query_len;
-\t\t\textern volatile unsigned int ufs8996_query_bytes01;
-\t\t\textern volatile unsigned int ufs8996_step;
-\t\t\tstatic const char hx[] = "0123456789abcdef";
-\t\t\tv394_buf[7] = (ufs8996_query_ocs < 16)
-\t\t\t    ? hx[ufs8996_query_ocs] : '?';
-\t\t\tv394_buf[11] = hx[(ufs8996_query_type >> 12) & 0xf];
-\t\t\tv394_buf[12] = hx[(ufs8996_query_type >> 8) & 0xf];
-\t\t\tv394_buf[13] = hx[(ufs8996_query_type >> 4) & 0xf];
-\t\t\tv394_buf[14] = hx[ufs8996_query_type & 0xf];
-\t\t\tv394_buf[18] = hx[(ufs8996_query_b45 >> 12) & 0xf];
-\t\t\tv394_buf[19] = hx[(ufs8996_query_b45 >> 8) & 0xf];
-\t\t\tv394_buf[20] = hx[(ufs8996_query_b45 >> 4) & 0xf];
-\t\t\tv394_buf[21] = hx[ufs8996_query_b45 & 0xf];
-\t\t\tv394_buf[25] = hx[(ufs8996_query_resp >> 4) & 0xf];
-\t\t\tv394_buf[26] = hx[ufs8996_query_resp & 0xf];
-\t\t\tv394_buf[30] = hx[(ufs8996_query_len >> 4) & 0xf];
-\t\t\tv394_buf[31] = hx[ufs8996_query_len & 0xf];
-\t\t\tv394_buf[35] = hx[(ufs8996_query_bytes01 >> 12) & 0xf];
-\t\t\tv394_buf[36] = hx[(ufs8996_query_bytes01 >> 8) & 0xf];
-\t\t\tv394_buf[37] = hx[(ufs8996_query_bytes01 >> 4) & 0xf];
-\t\t\tv394_buf[38] = hx[ufs8996_query_bytes01 & 0xf];
-\t\t\tv394_buf[42] = (ufs8996_step < 10)
-\t\t\t    ? (char)('0' + ufs8996_step) : '?';
-\t\t\t{
-\t\t\t\textern volatile unsigned int ufs8996_query_spins;
-\t\t\t\textern volatile unsigned int ufs8996_query_is;
-\t\t\t\tunsigned int p = ufs8996_query_spins & 0xffffffu;
-\t\t\t\tunsigned int k;
-\t\t\t\tfor (k = 0; k < 6; k++)
-\t\t\t\t\tv394_buf[51 - k] = hx[(p >> (4 * k)) & 0xf];
-\t\t\t\tv394_buf[55] = hx[(ufs8996_query_is >> 4) & 0xf];
-\t\t\t\tv394_buf[56] = hx[ufs8996_query_is & 0xf];
-\t\t\t}
-\t\t}"""
-    bs = pat.sub(lambda _: new_fill, bs, count=1)
-    BSD.write_text(bs, encoding="utf-8")
-    print("patch_v402: bsdinit pinned row converted to v402 layout")
+        pat = re.compile(
+            r"\t\tv394_buf\[7\] = \(ufs8996_query_ocs.*?"
+            r"ufs8996_query_is & 0xf\]; \}",
+            re.S,
+        )
+        if not pat.search(bs):
+            sys.exit("patch_v402: pinned-row fill block not found")
+        new_fill = """\t\t/* g0245d v402: response UPIU header dump on the pinned row. */
+    \t\t{
+    \t\t\textern volatile unsigned int ufs8996_query_ocs;
+    \t\t\textern volatile unsigned int ufs8996_query_type;
+    \t\t\textern volatile unsigned int ufs8996_query_b45;
+    \t\t\textern volatile unsigned int ufs8996_query_resp;
+    \t\t\textern volatile unsigned int ufs8996_query_len;
+    \t\t\textern volatile unsigned int ufs8996_query_bytes01;
+    \t\t\textern volatile unsigned int ufs8996_step;
+    \t\t\tstatic const char hx[] = "0123456789abcdef";
+    \t\t\tv394_buf[7] = (ufs8996_query_ocs < 16)
+    \t\t\t    ? hx[ufs8996_query_ocs] : '?';
+    \t\t\tv394_buf[11] = hx[(ufs8996_query_type >> 12) & 0xf];
+    \t\t\tv394_buf[12] = hx[(ufs8996_query_type >> 8) & 0xf];
+    \t\t\tv394_buf[13] = hx[(ufs8996_query_type >> 4) & 0xf];
+    \t\t\tv394_buf[14] = hx[ufs8996_query_type & 0xf];
+    \t\t\tv394_buf[18] = hx[(ufs8996_query_b45 >> 12) & 0xf];
+    \t\t\tv394_buf[19] = hx[(ufs8996_query_b45 >> 8) & 0xf];
+    \t\t\tv394_buf[20] = hx[(ufs8996_query_b45 >> 4) & 0xf];
+    \t\t\tv394_buf[21] = hx[ufs8996_query_b45 & 0xf];
+    \t\t\tv394_buf[25] = hx[(ufs8996_query_resp >> 4) & 0xf];
+    \t\t\tv394_buf[26] = hx[ufs8996_query_resp & 0xf];
+    \t\t\tv394_buf[30] = hx[(ufs8996_query_len >> 4) & 0xf];
+    \t\t\tv394_buf[31] = hx[ufs8996_query_len & 0xf];
+    \t\t\tv394_buf[35] = hx[(ufs8996_query_bytes01 >> 12) & 0xf];
+    \t\t\tv394_buf[36] = hx[(ufs8996_query_bytes01 >> 8) & 0xf];
+    \t\t\tv394_buf[37] = hx[(ufs8996_query_bytes01 >> 4) & 0xf];
+    \t\t\tv394_buf[38] = hx[ufs8996_query_bytes01 & 0xf];
+    \t\t\tv394_buf[42] = (ufs8996_step < 10)
+    \t\t\t    ? (char)('0' + ufs8996_step) : '?';
+    \t\t\t{
+    \t\t\t\textern volatile unsigned int ufs8996_query_spins;
+    \t\t\t\textern volatile unsigned int ufs8996_query_is;
+    \t\t\t\tunsigned int p = ufs8996_query_spins & 0xffffffu;
+    \t\t\t\tunsigned int k;
+    \t\t\t\tfor (k = 0; k < 6; k++)
+    \t\t\t\t\tv394_buf[51 - k] = hx[(p >> (4 * k)) & 0xf];
+    \t\t\t\tv394_buf[55] = hx[(ufs8996_query_is >> 4) & 0xf];
+    \t\t\t\tv394_buf[56] = hx[ufs8996_query_is & 0xf];
+    \t\t\t}
+    \t\t}"""
+        bs = pat.sub(lambda _: new_fill, bs, count=1)
+        BSD.write_text(bs, encoding="utf-8")
+        print("patch_v402: bsdinit pinned row converted to v402 layout")
 
 print("patch_v402: done")
