@@ -226,7 +226,10 @@ static DeviceDescriptorResult v394QueryDevice(
   // g0245d v398: Linux puts query_func in byte 2 of UPIU header
   // dword_1, i.e. UCD offset 6.  v394 put it at offset 5 (byte 1),
   // leaving the real query_func field = 0.  Offset 5 stays 0.
-  v395_ucd[6] = 0x01u;               // STANDARD_READ_REQUEST
+  // g0245d v401: ShengUfs/EDK2/Linux all put query_func at UCD
+  // offset 5 (DW1 byte1).  v398 put it at offset 6, which is the
+  // response-code position.  Restore offset 5.
+  v395_ucd[5] = 0x01u;               // STANDARD_READ_REQUEST
   v395_ucd[10] = 0u;                 // data segment length (hi)
   v395_ucd[11] = 64u;                // data segment length (lo)
   v395_ucd[12] = 0x01u;              // READ_DESC
