@@ -70,6 +70,8 @@ volatile uint32_t ufs8996_query_len     = 0;
 volatile uint32_t ufs8996_query_bytes01 = 0;
 volatile uint32_t ufs8996_query_bytes23 = 0;
 volatile uint32_t ufs8996_query_spins   = 0;
+// g0245d v396: doorbell readback after the UTRL poll.
+volatile uint32_t ufs8996_query_doorbell = 0;
 
 namespace {
 const char *const kCompatible[] = {
@@ -159,6 +161,7 @@ struct DeviceDescriptorResult {
   uint32_t bytes01;
   uint32_t bytes23;
   uint32_t spins;
+  uint32_t doorbell;
 };
 
 static inline void v394Write32(uintptr_t base, unsigned offset, uint32_t value)
@@ -182,6 +185,7 @@ static DeviceDescriptorResult v394QueryDevice(
   out.bytes01 = 0;
   out.bytes23 = 0;
   out.spins = 1000000u;
+  out.doorbell = 0u;
 
   for (unsigned int i = 0; i < 4096u; i++) { utrd[i] = 0; ucd[i] = 0; }
 
@@ -201,7 +205,10 @@ static DeviceDescriptorResult v394QueryDevice(
   // an unaligned 32-bit store that faulted at pc 0xfffffff007b06914.
   // A volatile byte pointer forbids the merge; every access stays 1 byte.
   volatile uint8_t *v395_ucd = ucd;
-  v395_ucd[0] = 1u;                  // task tag
+  // g0245d v396: Linux uses the same value for UPIU task tag and
+  // doorbell slot (lrbp->task_tag = tag; doorbell = 1 << tag).
+  // v395 had tag=1 with doorbell slot 0; make both 0.
+  v395_ucd[0] = 0u;                  // task tag = doorbell slot 0
   v395_ucd[1] = 0u;                  // LUN
   v395_ucd[2] = 0u;                  // flags: no data
   v395_ucd[3] = 0x16u;               // QUERY REQUEST
@@ -231,6 +238,9 @@ static DeviceDescriptorResult v394QueryDevice(
       break;
     }
   }
+  // g0245d v396: read-only diagnostic -- did the controller consume the
+  // doorbell?  0 means it did; a set bit means the request was not taken.
+  out.doorbell = v394Read32(base, Ufs8996::REG_UTRL_DB) & 0xfu;
   if (out.spins == 1000000u) {
     v394Write32(base, Ufs8996::REG_UTRL_RUN, 0u);
     return out;
@@ -507,6 +517,7 @@ bool NativeUfs8996::start(IOService *provider)
       ufs8996_query_bytes01 = q.bytes01;
       ufs8996_query_bytes23 = q.bytes23;
       ufs8996_query_spins   = q.spins;
+      ufs8996_query_doorbell = q.doorbell;
       ufs8996_step = 9u;
       g0245d_trace_u("v394 desc", ufs8996_query_bytes01);
     }
