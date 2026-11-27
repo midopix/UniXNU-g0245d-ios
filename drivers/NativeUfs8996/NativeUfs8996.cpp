@@ -196,18 +196,24 @@ static DeviceDescriptorResult v394QueryDevice(
   *reinterpret_cast<volatile uint16_t *>(utrd + 28) = 0u;
   *reinterpret_cast<volatile uint16_t *>(utrd + 30) = 256u; // 1024 >> 2
 
-  // Query Request UPIU header (network byte order).
-  ucd[0] = 1u;                       // task tag
-  ucd[1] = 0u;                       // LUN
-  ucd[2] = 0u;                       // flags: no data
-  ucd[3] = 0x16u;                    // QUERY REQUEST
-  ucd[5] = 0x01u;                    // standard read request
-  ucd[10] = 0u; ucd[11] = 64u;       // data segment length
-  // Query Request fields at offset 12.
-  ucd[12] = 0x01u;                   // READ_DESC
-  ucd[13] = 0x00u;                   // DEVICE descriptor
-  ucd[14] = 0u; ucd[15] = 0u;
-  ucd[18] = 0u; ucd[19] = 64u;       // descriptor buffer length
+  // g0245d v395: the UCD is an uncached MMU mapping.  v394's adjacent
+  // byte writes at ucd[10..13] were merged into `stur w9, [x2, #0xa]`,
+  // an unaligned 32-bit store that faulted at pc 0xfffffff007b06914.
+  // A volatile byte pointer forbids the merge; every access stays 1 byte.
+  volatile uint8_t *v395_ucd = ucd;
+  v395_ucd[0] = 1u;                  // task tag
+  v395_ucd[1] = 0u;                  // LUN
+  v395_ucd[2] = 0u;                  // flags: no data
+  v395_ucd[3] = 0x16u;               // QUERY REQUEST
+  v395_ucd[5] = 0x01u;               // standard read request
+  v395_ucd[10] = 0u;                 // data segment length (hi)
+  v395_ucd[11] = 64u;                // data segment length (lo)
+  v395_ucd[12] = 0x01u;              // READ_DESC
+  v395_ucd[13] = 0x00u;              // DEVICE descriptor
+  v395_ucd[14] = 0u;
+  v395_ucd[15] = 0u;
+  v395_ucd[18] = 0u;                 // descriptor buffer length (hi)
+  v395_ucd[19] = 64u;                // descriptor buffer length (lo)
 
   v394Write32(base, Ufs8996::REG_UTRL_BASE_L, (uint32_t)utrd_phys);
   v394Write32(base, Ufs8996::REG_UTRL_BASE_H, (uint32_t)(utrd_phys >> 32));
@@ -232,10 +238,14 @@ static DeviceDescriptorResult v394QueryDevice(
   v394Write32(base, Ufs8996::REG_IS, Ufs8996::IS_UTP_TRANSFER_COMP);
 
   out.ocs = (*reinterpret_cast<volatile uint32_t *>(utrd + 8)) & 0xfu;
-  out.response = ucd[512 + 5];
-  out.data_len = ((uint32_t)ucd[512 + 10] << 8) | ucd[512 + 11];
-  out.bytes01 = ((uint32_t)ucd[512 + 32] << 8) | ucd[512 + 33];
-  out.bytes23 = ((uint32_t)ucd[512 + 34] << 8) | ucd[512 + 35];
+  // g0245d v395: same no-merge rule for response bytes.
+  out.response = v395_ucd[512 + 5];
+  out.data_len =
+      ((uint32_t)v395_ucd[512 + 10] << 8) | v395_ucd[512 + 11];
+  out.bytes01 =
+      ((uint32_t)v395_ucd[512 + 32] << 8) | v395_ucd[512 + 33];
+  out.bytes23 =
+      ((uint32_t)v395_ucd[512 + 34] << 8) | v395_ucd[512 + 35];
   v394Write32(base, Ufs8996::REG_UTRL_RUN, 0u);
   return out;
 }
