@@ -55,6 +55,14 @@ constexpr unsigned REG_UIC_ERR_DME = 0x48;
 constexpr unsigned UIC_DME_ENABLE  = 0x12u;
 constexpr unsigned UIC_DME_RESET   = 0x14u;
 
+// UTP transfer list (g0245d v394; msm-3.18 ufshci.h).
+constexpr unsigned REG_UTRL_BASE_L = 0x50;
+constexpr unsigned REG_UTRL_BASE_H = 0x54;
+constexpr unsigned REG_UTRL_DB     = 0x58;
+constexpr unsigned REG_UTRL_CLEAR  = 0x5c;
+constexpr unsigned REG_UTRL_RUN    = 0x60;
+constexpr unsigned IS_UTP_TRANSFER_COMP = (1u << 0);
+
 constexpr unsigned VER_MAJOR_SHIFT = 16;
 constexpr unsigned VER_MINOR_SHIFT = 0;
 constexpr uint32_t VER_FIELD_MASK  = 0xffffu;
