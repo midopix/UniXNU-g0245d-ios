@@ -75,6 +75,10 @@ volatile uint32_t ufs8996_query_spins   = 0;
 volatile uint32_t ufs8996_query_doorbell = 0;
 // g0245d v399: IS register value after the UTRL poll.
 volatile uint32_t ufs8996_query_is = 0;
+// g0245d v402: response UPIU header dump (bytes 0-1 and 4-5
+// of the 512-byte response area) pinned on the console row.
+volatile uint32_t ufs8996_query_type = 0xffff;
+volatile uint32_t ufs8996_query_b45  = 0xffff;
 
 namespace {
 const char *const kCompatible[] = {
@@ -264,6 +268,11 @@ static DeviceDescriptorResult v394QueryDevice(
   // g0245d v399: pin the IS value instead of only tracing it.
   ufs8996_query_is = v394Read32(base, Ufs8996::REG_IS);
   g0245d_trace_u("v398 is", ufs8996_query_is);
+  // g0245d v402: dump the response UPIU header bytes (read-only).
+  ufs8996_query_type =
+      ((uint32_t)v395_ucd[512 + 0] << 8) | v395_ucd[512 + 1];
+  ufs8996_query_b45 =
+      ((uint32_t)v395_ucd[512 + 4] << 8) | v395_ucd[512 + 5];
   if (out.spins == 1000000u) {
     // g0245d v397: read-only diagnostics.  v394-v396 left the o/r/a/b/d
     // fields at their sentinel values on timeout, so the photo could not
