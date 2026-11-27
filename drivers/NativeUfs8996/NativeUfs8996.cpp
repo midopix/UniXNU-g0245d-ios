@@ -88,6 +88,8 @@ volatile uint32_t ufs8996_query_initpolls = 0xffffffffu;
 volatile uint32_t ufs8996_query_pmbefore = 0xffu;
 volatile uint32_t ufs8996_query_pm       = 0xffu;
 volatile uint32_t ufs8996_query_ssu      = 0xffffffu;
+// g0245d v405: final READ DESC response TSF echo (idn byte).
+volatile uint32_t ufs8996_query_echoidn  = 0xffu;
 
 namespace {
 const char *const kCompatible[] = {
@@ -326,28 +328,6 @@ static DeviceDescriptorResult v394QueryDevice(
   out.spins = 1000000u;
   out.doorbell = 0u;
 
-  // g0245d v403: run the fDeviceInit sequence first (Linux
-  // ufshcd_complete_dev_init): SET FLAG fDeviceInit, then poll READ
-  // FLAG until the device clears it.  Without it the device answers
-  // the descriptor read with rsp=0xF6 (PARAM NOT READABLE).
-  {
-    uint32_t v403_value = 0;
-    unsigned int p;
-    v403FlagQuery(base, utrd, ucd, utrd_phys, ucd_phys,
-                  0x06u, 0x01u, &ufs8996_query_setresp, &v403_value);
-    for (p = 0; p < 1000u; p++) {
-      v403_value = 0xffffffffu;
-      ufs8996_query_initpolls = p;
-      v403FlagQuery(base, utrd, ucd, utrd_phys, ucd_phys,
-                    0x05u, 0x01u,
-                    &ufs8996_query_readresp, &v403_value);
-      ufs8996_query_initflag = v403_value & 0xffu;
-      if (ufs8996_query_initflag == 0u) { break; }
-    }
-    g0245d_trace_u("v403 setresp", ufs8996_query_setresp);
-    g0245d_trace_u("v403 initflag", ufs8996_query_initflag);
-    g0245d_trace_u("v403 initpolls", ufs8996_query_initpolls);
-  }
     // g0245d v404: read bCurrentPowerMode, wake the device with SSU
     // (power condition ACTIVE) to W-LUN 0xD0, read it again.
     {
@@ -361,6 +341,29 @@ static DeviceDescriptorResult v394QueryDevice(
                     0x03u, 0x02u, &ufs8996_query_readresp, &v404_value);
       ufs8996_query_pm = v404_value & 0xffu;
       g0245d_trace_u("v404 pm", ufs8996_query_pm);
+    }
+    // g0245d v405: fDeviceInit must run while the device is ACTIVE.
+    // In PowerDown every query failed with 0xF6, and a failed READ
+    // FLAG returns a zero value field -- the old poll mistook that for
+    // "init done".  Require QueryResp==0x00 before trusting the flag.
+    {
+      uint32_t v405_value = 0;
+      unsigned int p;
+      v403FlagQuery(base, utrd, ucd, utrd_phys, ucd_phys,
+                    0x06u, 0x01u, &ufs8996_query_setresp, &v405_value);
+      for (p = 0; p < 1000u; p++) {
+        v405_value = 0xffffffffu;
+        ufs8996_query_initpolls = p;
+        v403FlagQuery(base, utrd, ucd, utrd_phys, ucd_phys,
+                      0x05u, 0x01u,
+                      &ufs8996_query_readresp, &v405_value);
+        ufs8996_query_initflag = v405_value & 0xffu;
+        if (ufs8996_query_readresp == 0x00u &&
+            ufs8996_query_initflag == 0u) { break; }
+      }
+      g0245d_trace_u("v405 setresp", ufs8996_query_setresp);
+      g0245d_trace_u("v405 initflag", ufs8996_query_initflag);
+      g0245d_trace_u("v405 initpolls", ufs8996_query_initpolls);
     }
 
   for (unsigned int i = 0; i < 4096u; i++) { utrd[i] = 0; ucd[i] = 0; }
@@ -442,6 +445,7 @@ static DeviceDescriptorResult v394QueryDevice(
       ((uint32_t)v395_ucd[512 + 0] << 8) | v395_ucd[512 + 1];
   ufs8996_query_b45 =
       ((uint32_t)v395_ucd[512 + 4] << 8) | v395_ucd[512 + 5];
+  ufs8996_query_echoidn = v395_ucd[512 + 13];
   if (out.spins == 1000000u) {
     // g0245d v397: read-only diagnostics.  v394-v396 left the o/r/a/b/d
     // fields at their sentinel values on timeout, so the photo could not
