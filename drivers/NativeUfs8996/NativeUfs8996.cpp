@@ -22,6 +22,7 @@
 
 extern "C" void g0245d_trace(const char *label);
 extern "C" void g0245d_trace_u(const char *label, unsigned int value);
+extern volatile uint32_t ufs8996_query_is;
 extern "C" unsigned long long kvtophys(unsigned long long va);
 
 uint32_t ufs8996_probe_calls = 0;
@@ -72,6 +73,8 @@ volatile uint32_t ufs8996_query_bytes23 = 0;
 volatile uint32_t ufs8996_query_spins   = 0;
 // g0245d v396: doorbell readback after the UTRL poll.
 volatile uint32_t ufs8996_query_doorbell = 0;
+// g0245d v399: IS register value after the UTRL poll.
+volatile uint32_t ufs8996_query_is = 0;
 
 namespace {
 const char *const kCompatible[] = {
@@ -251,7 +254,9 @@ static DeviceDescriptorResult v394QueryDevice(
   // g0245d v398: read-only diagnostics -- did IS bit0 ever appear?
   // spins == 1000000 means no; a smaller value means IS was asserted.
   g0245d_trace_u("v398 spins", out.spins);
-  g0245d_trace_u("v398 is", v394Read32(base, Ufs8996::REG_IS));
+  // g0245d v399: pin the IS value instead of only tracing it.
+  ufs8996_query_is = v394Read32(base, Ufs8996::REG_IS);
+  g0245d_trace_u("v398 is", ufs8996_query_is);
   if (out.spins == 1000000u) {
     // g0245d v397: read-only diagnostics.  v394-v396 left the o/r/a/b/d
     // fields at their sentinel values on timeout, so the photo could not
