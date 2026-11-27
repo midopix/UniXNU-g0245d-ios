@@ -84,6 +84,10 @@ volatile uint32_t ufs8996_query_setresp   = 0xfe;
 volatile uint32_t ufs8996_query_readresp  = 0xfe;
 volatile uint32_t ufs8996_query_initflag  = 0xffffffffu;
 volatile uint32_t ufs8996_query_initpolls = 0xffffffffu;
+// g0245d v404: power state + SSU wake diagnostics.
+volatile uint32_t ufs8996_query_pmbefore = 0xffu;
+volatile uint32_t ufs8996_query_pm       = 0xffu;
+volatile uint32_t ufs8996_query_ssu      = 0xffffffu;
 
 namespace {
 const char *const kCompatible[] = {
@@ -244,6 +248,71 @@ static void v403FlagQuery(
       v403_ucd[512 + 23];
 }
 
+// g0245d v404: START STOP UNIT (power condition ACTIVE) to the UFS
+// Device W-LUN 0xD0, per ShengUfs and Linux ufshcd_set_dev_pwr_mode.
+// COMMAND UPIU (EDK2: transaction type 0x01), 6-byte CDB, no data.
+static void v404SsuWake(
+    uintptr_t base, uint8_t *utrd, uint8_t *ucd,
+    uint64_t utrd_phys, uint64_t ucd_phys)
+{
+  volatile uint8_t *v404_ucd = ucd;
+  static const uint8_t cdb[6] = {
+      0x1bu, 0x00u, 0x00u, 0x00u, 0x10u, 0x00u };
+  unsigned int i;
+  unsigned int w;
+  uint32_t ocs;
+  uint32_t resp;
+  uint32_t scsi;
+  for (i = 0; i < 4096u; i++) { utrd[i] = 0; ucd[i] = 0; }
+  // UTRD dword0: command type SCSI (0) + INT (bit24), no data direction.
+  *reinterpret_cast<volatile uint32_t *>(utrd + 0) = 0x01000000u;
+  *reinterpret_cast<volatile uint32_t *>(utrd + 8) = 0x0fu;
+  *reinterpret_cast<volatile uint32_t *>(utrd + 16) = (uint32_t)ucd_phys;
+  *reinterpret_cast<volatile uint32_t *>(utrd + 20) =
+      (uint32_t)(ucd_phys >> 32);
+  *reinterpret_cast<volatile uint16_t *>(utrd + 24) = 128u;
+  *reinterpret_cast<volatile uint16_t *>(utrd + 26) = 128u;
+  *reinterpret_cast<volatile uint16_t *>(utrd + 28) = 0u;
+  *reinterpret_cast<volatile uint16_t *>(utrd + 30) = 256u;
+  v404_ucd[0] = 0x01u;               // COMMAND UPIU
+  v404_ucd[1] = 0x00u;               // flags: none
+  v404_ucd[2] = 0xd0u;               // UFS Device W-LUN
+  v404_ucd[3] = 0x00u;               // task tag
+  v404_ucd[12] = 0x00u;              // expected data transfer length: 0
+  v404_ucd[13] = 0x00u;
+  v404_ucd[14] = 0x00u;
+  v404_ucd[15] = 0x00u;
+  for (i = 0; i < 6u; i++) { v404_ucd[16 + i] = cdb[i]; }
+  v394Write32(base, Ufs8996::REG_UTRL_BASE_L, (uint32_t)utrd_phys);
+  v394Write32(base, Ufs8996::REG_UTRL_BASE_H, (uint32_t)(utrd_phys >> 32));
+  v394Write32(base, Ufs8996::REG_UTRL_CLEAR, 1u);
+  for (i = 0; i < 100000u; i++) { /* bounded settle */ }
+  v394Write32(base, Ufs8996::REG_UTRL_RUN, 1u);
+  for (i = 0; i < 100000u; i++) {
+    if (v394Read32(base, Ufs8996::REG_HCS) & 1u) { break; }
+  }
+  v394Write32(base, Ufs8996::REG_UTRL_DB, 1u); // slot 0 doorbell
+  // IS bit0 or doorbell clear, whichever comes first (ShengUfs polls
+  // the doorbell; our controller proved IS with INT commands).
+  for (w = 0; w < 1000000u; w++) {
+    if ((v394Read32(base, Ufs8996::REG_IS) &
+         Ufs8996::IS_UTP_TRANSFER_COMP) ||
+        !(v394Read32(base, Ufs8996::REG_UTRL_DB) & 1u)) {
+      break;
+    }
+  }
+  v394Write32(base, Ufs8996::REG_IS, Ufs8996::IS_UTP_TRANSFER_COMP);
+  ocs = (*reinterpret_cast<volatile uint32_t *>(utrd + 8)) & 0xfu;
+  resp = v404_ucd[512 + 6];
+  scsi = v404_ucd[512 + 7];
+  ufs8996_query_ssu =
+      ((ocs & 0xffu) << 16) | ((resp & 0xffu) << 8) | (scsi & 0xffu);
+  // ShengUfs lets the device settle ~50ms before the next query.
+  for (w = 0; w < 50u; w++) {
+    for (i = 0; i < 100000u; i++) { /* bounded settle */ }
+  }
+}
+
 static DeviceDescriptorResult v394QueryDevice(
     uintptr_t base, uint8_t *utrd, uint8_t *ucd,
     uint64_t utrd_phys, uint64_t ucd_phys)
@@ -279,6 +348,17 @@ static DeviceDescriptorResult v394QueryDevice(
     g0245d_trace_u("v403 initflag", ufs8996_query_initflag);
     g0245d_trace_u("v403 initpolls", ufs8996_query_initpolls);
   }
+    // g0245d v404: read bCurrentPowerMode, wake the device with SSU
+    // (power condition ACTIVE) to W-LUN 0xD0, read it again.
+    v403FlagQuery(base, utrd, ucd, utrd_phys, ucd_phys,
+                  0x03u, 0x02u, &ufs8996_query_readresp, &v403_value);
+    ufs8996_query_pmbefore = v403_value & 0xffu;
+    g0245d_trace_u("v404 pmbefore", ufs8996_query_pmbefore);
+    v404SsuWake(base, utrd, ucd, utrd_phys, ucd_phys);
+    v403FlagQuery(base, utrd, ucd, utrd_phys, ucd_phys,
+                  0x03u, 0x02u, &ufs8996_query_readresp, &v403_value);
+    ufs8996_query_pm = v403_value & 0xffu;
+    g0245d_trace_u("v404 pm", ufs8996_query_pm);
 
   for (unsigned int i = 0; i < 4096u; i++) { utrd[i] = 0; ucd[i] = 0; }
 
