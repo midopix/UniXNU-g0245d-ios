@@ -170,13 +170,14 @@ else:
         bs = bs.replace(old_row, new_row, 1)
         pat = re.compile(
             r"\t\t\tv394_buf\[7\] = \(ufs8996_query_ocs.*?"
-            r"ufs8996_query_is & 0xf\];",
+            r"ufs8996_query_is & 0xf\];\n\t\t\t}",
             re.S,
         )
         if not pat.search(bs):
             sys.exit("patch_v404: pinned-row fill block not found")
         new_fill = """\t\t\textern volatile unsigned int ufs8996_query_ssu;
 \t\t\textern volatile unsigned int ufs8996_query_pm;
+\t\t\textern volatile unsigned int ufs8996_query_is;
 \t\t\tv394_buf[7] = (ufs8996_query_ocs < 16)
 \t\t\t    ? hx[ufs8996_query_ocs] : '?';
 \t\t\tv394_buf[11] = hx[(ufs8996_query_type >> 4) & 0xf];
@@ -200,7 +201,8 @@ else:
 \t\t\tv394_buf[49] = (ufs8996_step < 10)
 \t\t\t    ? (char)('0' + ufs8996_step) : '?';
 \t\t\tv394_buf[53] = hx[(ufs8996_query_is >> 4) & 0xf];
-\t\t\tv394_buf[54] = hx[ufs8996_query_is & 0xf];"""
+\t\t\tv394_buf[54] = hx[ufs8996_query_is & 0xf];
+\t\t\t}"""
         bs = pat.sub(lambda _: new_fill, bs, count=1)
         BSD.write_text(bs, encoding="utf-8")
         print("patch_v404: bsdinit pinned row converted to v404 layout")
