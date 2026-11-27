@@ -190,7 +190,11 @@ static DeviceDescriptorResult v394QueryDevice(
   for (unsigned int i = 0; i < 4096u; i++) { utrd[i] = 0; ucd[i] = 0; }
 
   // UTRD slot 0: device-management command, no data, OCS invalid.
-  *reinterpret_cast<volatile uint32_t *>(utrd + 0) = 0x20000000u;
+  // g0245d v397: ufshcd_exec_dev_cmd() marks device-management
+  // commands intr_cmd, so Linux ORs UTP_REQ_DESC_INT_CMD (bit24)
+  // into UTRD dword0.  Without it the controller may complete the
+  // transfer without ever asserting IS bit0.
+  *reinterpret_cast<volatile uint32_t *>(utrd + 0) = 0x21000000u;
   *reinterpret_cast<volatile uint32_t *>(utrd + 8) = 0x0fu;
   *reinterpret_cast<volatile uint32_t *>(utrd + 16) = (uint32_t)ucd_phys;
   *reinterpret_cast<volatile uint32_t *>(utrd + 20) = (uint32_t)(ucd_phys >> 32);
@@ -242,6 +246,18 @@ static DeviceDescriptorResult v394QueryDevice(
   // doorbell?  0 means it did; a set bit means the request was not taken.
   out.doorbell = v394Read32(base, Ufs8996::REG_UTRL_DB) & 0xfu;
   if (out.spins == 1000000u) {
+    // g0245d v397: read-only diagnostics.  v394-v396 left the o/r/a/b/d
+    // fields at their sentinel values on timeout, so the photo could not
+    // tell whether the controller had written OCS/response at all.
+    out.ocs = (*reinterpret_cast<volatile uint32_t *>(utrd + 8)) & 0xfu;
+    // g0245d v397: volatile byte reads forbid 32-bit merge (v394 fault).
+    out.response = v395_ucd[512 + 5];
+    out.data_len =
+        ((uint32_t)v395_ucd[512 + 10] << 8) | v395_ucd[512 + 11];
+    out.bytes01 =
+        ((uint32_t)v395_ucd[512 + 32] << 8) | v395_ucd[512 + 33];
+    out.bytes23 =
+        ((uint32_t)v395_ucd[512 + 34] << 8) | v395_ucd[512 + 35];
     v394Write32(base, Ufs8996::REG_UTRL_RUN, 0u);
     return out;
   }
