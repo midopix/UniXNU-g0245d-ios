@@ -51,6 +51,10 @@ constexpr unsigned REG_UIC_ERR_NL  = 0x40;
 constexpr unsigned REG_UIC_ERR_TL  = 0x44;
 constexpr unsigned REG_UIC_ERR_DME = 0x48;
 
+// UniPro recovery opcodes (g0245d v393; same UIC command interface).
+constexpr unsigned UIC_DME_ENABLE  = 0x12u;
+constexpr unsigned UIC_DME_RESET   = 0x14u;
+
 constexpr unsigned VER_MAJOR_SHIFT = 16;
 constexpr unsigned VER_MINOR_SHIFT = 0;
 constexpr uint32_t VER_FIELD_MASK  = 0xffffu;

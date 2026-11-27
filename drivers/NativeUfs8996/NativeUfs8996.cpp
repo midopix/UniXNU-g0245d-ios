@@ -56,6 +56,12 @@ volatile uint32_t ufs8996_err_dl  = 0;
 volatile uint32_t ufs8996_err_nl  = 0;
 volatile uint32_t ufs8996_err_tl  = 0;
 volatile uint32_t ufs8996_err_dme = 0;
+// g0245d v393: one-shot UniPro recovery after q=01.
+volatile uint32_t ufs8996_recover_reset  = 0;
+volatile uint32_t ufs8996_recover_enable = 0;
+volatile uint32_t ufs8996_recover_result = 0;
+volatile uint32_t ufs8996_recover_spins  = 0;
+volatile uint32_t ufs8996_recover_ready  = 0;
 
 namespace {
 const char *const kCompatible[] = {
@@ -81,6 +87,56 @@ bool contains(const char *data, size_t length, const char *needle)
     if (index == wanted) { return true; }
   }
   return false;
+}
+
+// g0245d v393: one bounded UIC command, identical to the proven v391 sequence.
+// result 0xfe means "not attempted" because UCRDY never arrived.
+struct UicRecoveryResult {
+  uint32_t is;
+  uint32_t ready;
+  uint32_t spins;
+  uint32_t result;
+};
+
+static UicRecoveryResult uicRecoveryCommand(uintptr_t base, unsigned opcode)
+{
+  UicRecoveryResult out;
+  out.is = 0;
+  out.ready = 2u;
+  out.spins = 100000u;
+  out.result = 0xfeu;
+
+  out.is = *reinterpret_cast<volatile uint32_t *>(
+      base + Ufs8996::REG_IS);
+  if (out.is & Ufs8996::IS_UCCS) {
+    *reinterpret_cast<volatile uint32_t *>(base + Ufs8996::REG_IS) =
+        Ufs8996::IS_UCCS;
+  }
+  for (unsigned int i = 0; i < 100000u; i++) {
+    if (*reinterpret_cast<volatile uint32_t *>(
+            base + Ufs8996::REG_HCS) & Ufs8996::HCS_UCRDY) {
+      out.ready = 1u;
+      break;
+    }
+  }
+  if (out.ready != 1u) { return out; }
+
+  *reinterpret_cast<volatile uint32_t *>(base + Ufs8996::REG_UICCMDARG1) = 0u;
+  *reinterpret_cast<volatile uint32_t *>(base + Ufs8996::REG_UICCMDARG2) = 0u;
+  *reinterpret_cast<volatile uint32_t *>(base + Ufs8996::REG_UICCMDARG3) = 0u;
+  *reinterpret_cast<volatile uint32_t *>(base + Ufs8996::REG_UICCMD) = opcode;
+  for (unsigned int w = 0; w < 100000u; w++) {
+    if (*reinterpret_cast<volatile uint32_t *>(
+            base + Ufs8996::REG_IS) & Ufs8996::IS_UCCS) {
+      out.spins = w;
+      break;
+    }
+  }
+  out.result = *reinterpret_cast<volatile uint32_t *>(
+      base + Ufs8996::REG_UICCMDARG2) & 0xffu;
+  *reinterpret_cast<volatile uint32_t *>(base + Ufs8996::REG_IS) =
+      Ufs8996::IS_UCCS;
+  return out;
 }
 } // namespace
 
@@ -298,6 +354,23 @@ bool NativeUfs8996::start(IOService *provider)
   ufs8996_err_tl  = read32(fBase, Ufs8996::REG_UIC_ERR_TL);
   ufs8996_err_dme = read32(fBase, Ufs8996::REG_UIC_ERR_DME);
 
+
+  /* g0245d v393: q=01 + only a generic DME error => reset UniPro,
+   * enable it again, then retry LINKSTARTUP once.  All three commands use
+   * the same bounded helper; no HCE/clock/PHY write. */
+  if (ufs8996_uic_result != 0u) {
+    UicRecoveryResult v393_r;
+    v393_r = uicRecoveryCommand(fBase, Ufs8996::UIC_DME_RESET);
+    ufs8996_recover_reset = v393_r.result;
+    v393_r = uicRecoveryCommand(fBase, Ufs8996::UIC_DME_ENABLE);
+    ufs8996_recover_enable = v393_r.result;
+    v393_r = uicRecoveryCommand(fBase, Ufs8996::UIC_DME_LINK_STARTUP);
+    ufs8996_recover_result = v393_r.result;
+    ufs8996_recover_spins  = v393_r.spins;
+    ufs8996_recover_ready  = v393_r.ready;
+    ufs8996_step = 8;
+    g0245d_trace_u("v393 retry", ufs8996_recover_result);
+  }
   ufs8996_step = 7;
   g0245d_trace_u("v391 ls", ufs8996_uic_result);
   return true;
