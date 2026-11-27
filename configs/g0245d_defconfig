@@ -22,6 +22,11 @@ CONFIG_XNU_CRYPTO_BOOTSTRAP="prelinked"
 # force_load OFF so this build carries no native-driver code at all; it is the
 # closest possible configuration to the working v320 image.
 CONFIG_XNU_BUILD_ARCHIVES=y
+# g0245d v385 (2026-11-27, 公司机接续): re-enable the UFS driver force-load.
+# v323 had turned it off for the bisect, and v385's bsd_init probe refers to
+# ufs8996_ver / ufs8996_uic_* directly, so without this the kernel link fails
+# with "symbol(s) not found" for every one of them.
+CONFIG_XNU_EXTRA_LD_ARCHIVES="-Wl,-force_load,{tree}/build/native-ufs-8996/libNativeUfs8996.a"
 # Empty string, NOT "is not set": the boolean parser turns False into the
 # literal "0" and the linker then receives a bare "0" as an input file.
 # g0245d v289/v290: mockfs memory root (offline executable-root fixture).
