@@ -1,0 +1,10 @@
+diff --git a/components.toml b/components.toml
+index 2b21b4c..bde3189 100644
+--- a/components.toml
++++ b/components.toml
+@@ -588,4 +588,4 @@ source_files = ["NativeUfs8996.cpp"]
+ runtime_identifiers = ["NativeUfs8996", "NativeUfs8996.cpp"]
+ build_stage = "kernel"
+ build = ["build-arm-driver.py", "NativeUfs8996"]
+-outputs = ["build/nativeufs8996/libNativeUfs8996.a"]
++outputs = ["build/native-ufs-8996/libNativeUfs8996.a"]

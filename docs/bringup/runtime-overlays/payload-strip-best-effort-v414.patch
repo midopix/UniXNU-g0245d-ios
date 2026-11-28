@@ -1,0 +1,23 @@
+diff --git a/scripts/unixnu/payload.py b/scripts/unixnu/payload.py
+index 5410e21..018c86a 100644
+--- a/scripts/unixnu/payload.py
++++ b/scripts/unixnu/payload.py
+@@ -328,9 +328,15 @@ def build(ctx, kernel=None):
+     # image stays in build/xnu/ios-obj for debugging.
+     staged_kernel = payloads / 'kernel.macho'
+     if staged_kernel.stat().st_size > 18_800_000:
+-        run(['strip', str(staged_kernel)], env=dict(os.environ, UNIXNU_UEFI=str(ctx.uefi or '')),
+-            log_file=ctx.logs / 'payload-strip.log')
+-        log(f'payload: staged kernel stripped to {staged_kernel.stat().st_size} bytes')
++        # v414: best-effort strip: a full-prelink candidate has its string table
++        # before the appended prelink segments; cctools strip rejects it. Keep
++        # the candidate intact and let the loader decide instead of failing.
++        try:
++            run(['strip', str(staged_kernel)], env=dict(os.environ, UNIXNU_UEFI=str(ctx.uefi or '')),
++                log_file=ctx.logs / 'payload-strip.log')
++            log(f'payload: staged kernel stripped to {staged_kernel.stat().st_size} bytes')
++        except Exception as exc:
++            log(f'payload: strip declined the staged kernel ({exc}); using it unstripped')
+     for path in [stage, *stage.rglob('*')]:
+         os.utime(path, (EPOCH, EPOCH))
+     size = int(spec.get('size_mib', 192))

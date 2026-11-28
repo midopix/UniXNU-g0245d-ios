@@ -1,0 +1,40 @@
+diff --git a/scripts/patch-xnu-entry-probe.py b/scripts/patch-xnu-entry-probe.py
+index 58b5a81..97324bd 100644
+--- a/scripts/patch-xnu-entry-probe.py
++++ b/scripts/patch-xnu-entry-probe.py
+@@ -310,18 +310,25 @@ def rebase(kernel, data):
+         # Locate the unique instruction sequence in this bounded entry body;
+         # do not assume a constant offset from the Mach-O entry point.
+         matches = []
++        def instruction(at):
++            return struct.unpack_from('<I', data, file_offset(at))[0]
+         for va in range(START_FIRST_CPU, START_FIRST_CPU + 0x1000, 4):
+-            def instruction(at):
+-                return struct.unpack_from('<I', data, file_offset(at))[0]
+-            if (instruction(va) == 0xD5181000 and
+-                    instruction(va + 4) == 0xD5033FDF and
+-                    instruction(va + 0x20) == 0xD2A00600 and
+-                    instruction(va + 0x24) == 0xD5181040):
+-                matches.append(va)
++            if instruction(va) == 0xD5181000 and instruction(va + 4) == 0xD5033FDF:
++                # The MOV x0,#0x300000 / MSR CPACR_EL1,x0 pair follows the
++                # SCTLR+ISB. Its distance is kernel-version specific: XNU 8796
++                # (iOS 16.5) inserts TTBR0/TTBR1/TCR/MAIR setup between them.
++                # Search a bounded window and require a unique, paired match.
++                pair = None
++                for off in range(0x8, 0x200, 4):
++                    if (instruction(va + off) == 0xD2A00600 and
++                            instruction(va + off + 4) == 0xD5181040):
++                        pair = va + off
++                        break
++                if pair is not None:
++                    matches.append((va, pair))
+         if len(matches) != 1:
+-            raise SystemExit('Require one verified SCTLR/ISB/CPACR entry sequence')
+-        MMU_ENABLE_VA = matches[0]
+-        AFTER_MMU_VA = MMU_ENABLE_VA + 0x20
++            raise SystemExit('Require one verified SCTLR/ISB/.../CPACR entry sequence')
++        MMU_ENABLE_VA, AFTER_MMU_VA = matches[0]
+     if '_panic' in names and '_vinfo' in names:
+         PANIC_VA = names['_panic']
+         # Board diagnostics seed this ABI-compatible prefix from valid console
