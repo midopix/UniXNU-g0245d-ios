@@ -45,6 +45,7 @@ archives = [
   "component:XnuPrelink",
   "component:DarwinBoot",
   "component:NativeUfs8996",
+  "build-boot-progress.py",
 ]
 
 [firmware]
@@ -75,7 +76,7 @@ title = "UniXNU"
 #   cmdline "console=ttyHSL0,115200,n8 androidboot.console=ttyHSL0
 #            androidboot.hardware=qcom user_debug=31 msm_rtb.filter=0x237
 #            ehci-hcd.park=3 lpm_levels.sleep_disabled=1 cma=32M@0-0xffffffff"
-kernel_args = ["-v", "serial=3", "console=ttyHSL0,115200,n8"]
+kernel_args = ["-v", "serial=3", "console=ttyHSL0,115200,n8", "boot-progress=2"]
 dram_size = "0x100000000"
 
 [payload.adt]

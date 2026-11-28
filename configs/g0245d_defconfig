@@ -44,3 +44,6 @@ CONFIG_XNU_SOURCE_MOCKFS=y
 # fails.  The arch fragment turns it on by default, so override it last.  AES
 # comes from CONFIG_XNU_SOURCE_CORECRYPTO14 (prelinked bootstrap) instead.
 # CONFIG_XNU_NATIVE_AES is not set
+
+# G0245D Stage 5: official boot-progress diagnostic page (boot-progress=2)
+CONFIG_XNU_BOOT_PROGRESS=y
